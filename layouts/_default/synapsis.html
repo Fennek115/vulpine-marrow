@@ -97,6 +97,47 @@
   </section>
 
   {{/* ============================================================
+       Nube de tags — vocabulario del blog dimensionado por
+       frecuencia. Solo posts (el Códice usa su propio esquema
+       `códice` + era y no entra). El tag interno `proyecto`
+       (portafolio) se omite, igual que en terms.html. Cada tag
+       enlaza a su taxonomía /tags/<t>/ (permalink vía GetPage).
+       ============================================================ */}}
+  {{- $tagCount := dict -}}
+  {{- range where .Site.RegularPages "Type" "posts" -}}
+    {{- range .Params.tags -}}
+      {{- if ne . "proyecto" -}}
+        {{- $tagCount = merge $tagCount (dict . (add (int (index $tagCount . | default 0)) 1)) -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+  {{- $tags := slice -}}
+  {{- $max := 1 -}}
+  {{- range $name, $count := $tagCount -}}
+    {{- $tags = $tags | append (dict "name" $name "count" $count) -}}
+    {{- if gt $count $max -}}{{- $max = $count -}}{{- end -}}
+  {{- end -}}
+  {{- $tags = sort $tags "count" "desc" -}}
+  <section class="syn-section">
+    <h2 class="syn-h">Tags</h2>
+    {{- if gt (len $tags) 0 }}
+    <p class="syn-note">{{ len $tags }} tags del blog · el tamaño indica la frecuencia. Clic en un tag lista sus entradas.</p>
+    <div class="tag-cloud">
+      {{- range $tags }}
+        {{- $name := .name -}}
+        {{- $count := .count -}}
+        {{- $size := add 0.82 (mul (div (float $count) (float $max)) 0.95) -}}
+        {{- with $.Site.GetPage (printf "/tags/%s" $name) }}
+        <a class="tag-cloud__tag" href="{{ .Permalink }}" style="font-size:{{ printf "%.2f" $size }}em">{{ .Name }}<span class="tag-cloud__n">{{ $count }}</span></a>
+        {{- end }}
+      {{- end }}
+    </div>
+    {{- else }}
+    <p class="syn-note">Todavía no hay tags en el blog.</p>
+    {{- end }}
+  </section>
+
+  {{/* ============================================================
        Índice cronológico — posts del blog agrupados por año.
        ============================================================ */}}
   {{- $posts := (where .Site.RegularPages "Type" "posts").ByDate.Reverse -}}

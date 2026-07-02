@@ -2,6 +2,17 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.4.2] — 2026-07-02
+
+### Added
+- **Nube de tags en `/synapsis/`**: nueva sección entre el grafo y el índice
+  cronológico que expone el vocabulario de tags del blog (hasta ahora `/tags/`
+  se generaba pero no estaba enlazado en ninguna parte). Cada tag se dimensiona
+  por frecuencia de uso y enlaza a su taxonomía `/tags/<t>/`. Se construye solo
+  desde los posts (`Type` `posts`), así el Códice —que usa su propio esquema
+  `códice` + era— no entra; el tag interno `proyecto` (portafolio) se omite,
+  igual que en `terms.html`. Estilos en `skin/08-synapsis.css` (`.tag-cloud`).
+
 ## [0.4.1] — 2026-07-02
 
 ### Fixed
