@@ -9,7 +9,7 @@
     {{- if .Date }}{{ partial "post-date" . }}{{ end -}}
     <span> · {{ .ReadingTime }} {{ $.Site.Params.minuteReadingTime | default "min de lectura" }}</span>
   </div>
-  <p class="post-item__summary">{{ .Summary | plainify | truncate 200 }}</p>
+  <p class="post-item__summary">{{ partial "wikilinks-plain.html" .Summary | plainify | truncate 200 }}</p>
   {{- /* `proyecto` es un tag interno (alimenta /portafolio/), no se muestra como chip */ -}}
   {{- $tags := slice }}{{ range .Params.tags }}{{ if ne . "proyecto" }}{{ $tags = $tags | append . }}{{ end }}{{ end }}
   {{- with $tags }}

@@ -1,0 +1,17 @@
+{{- /*
+  Versión "en claro" de los wikilinks para contextos de TEXTO PLANO
+  (meta description, summaries de listados, índice del buscador) donde el
+  partial wikilinks.html —que opera sobre el .Content ya renderizado— no llega
+  y los [[ ]] quedarían literales.
+
+  Recibe una cadena; devuelve la misma cadena con la sintaxis de wikilink
+  reducida a su texto visible, SIN enlace:
+    [[clave|alias]] -> alias
+    [[clave]]       -> clave
+*/ -}}
+{{- $s := . -}}
+{{- if strings.Contains $s "[[" -}}
+  {{- $s = replaceRE `\[\[[^\]|]+\|([^\]]+)\]\]` `$1` $s -}}
+  {{- $s = replaceRE `\[\[([^\]|]+)\]\]` `$1` $s -}}
+{{- end -}}
+{{- return $s -}}

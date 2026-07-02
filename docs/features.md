@@ -55,20 +55,36 @@ La **clave** es el último segmento del `RelPermalink` de la nota destino
   `span.wikilink--broken` (enlace roto visible).
 - **`partials/backlinks.html`** escanea el `.RawContent` del resto de páginas
   buscando la clave de la nota actual y arma el bloque «Mencionado en».
+- **`partials/related.html`** — «Notas relacionadas» **automáticas**: usa el
+  motor *Related Content* de Hugo (config `[related]` en `hugo.toml`, afinidad
+  por `tags`/`series`) para listar hasta 3 posts afines al pie de cada entrada
+  del blog, sin intervención manual. Solo `Type == "posts"` (el Códice tiene su
+  propia navegación). Reutiliza las clases CSS de backlinks.
 
-Ambos están cableados en `single.html` y son *opt-in* por contenido (solo
-aparecen si hay `[[ ]]`). El alcance es todo el sitio (blog + cualquier sección).
+Los tres están cableados en `single.html`; wikilinks/backlinks son *opt-in* por
+contenido (solo aparecen si hay `[[ ]]`), las notas relacionadas son automáticas.
+El alcance de los wikilinks es todo el sitio (blog + cualquier sección).
 
 ## Synapsis (mapa del jardín)
 
 Layout `layouts/_default/synapsis.html`, activado por `layout: "synapsis"` en
 una página. Dos secciones:
 
-1. **Grafo dirigido jerárquico**: Hugo recorre las páginas, extrae los `[[ ]]`
-   con `findRE`, resuelve claves (igual que wikilinks) y emite una definición
-   `flowchart TD` de mermaid con nodos, aristas dirigidas (cita → citada),
-   `click` por nodo y un `classDef hub` para las notas más citadas. mermaid/dagre
-   la dibuja en capas (layout Sugiyama). Reusa la carga y el theming de mermaid.
+1. **Grafo dirigido jerárquico** con dos tipos de arista:
+   - **Citas explícitas** (flecha sólida, cita → citada): Hugo recorre las
+     páginas, extrae los `[[ ]]` con `findRE` y resuelve claves igual que
+     wikilinks. Un `classDef hub` resalta las notas con ≥2 citas entrantes.
+   - **Afinidad temática** (línea punteada `-.-`): calculada en cada build con
+     el motor *Related Content* de Hugo (misma config `[related]` que
+     `related.html`), top 3 por post, pares deduplicados y sin repetir los ya
+     unidos por wikilink. Solo entre posts del blog — el Códice no entra
+     automático (ya tiene su orden de lectura y ahogaría el grafo). Así el
+     grafo **se actualiza solo** al publicar: un post nuevo entra por sus tags
+     aunque nadie lo haya citado aún.
+
+   Se emite una definición `flowchart TD` de mermaid con `click` por nodo;
+   mermaid/dagre la dibuja en capas (layout Sugiyama). Reusa la carga y el
+   theming de mermaid.
 2. **Índice cronológico**: los posts del blog (`Type == "posts"`) agrupados por
    año con `GroupByDate`, sin JS.
 
@@ -190,8 +206,11 @@ de su caja** en vez de empujar el ancho de toda la página.
 
 `js/lightbox.js` + `09-lightbox.css`. Al hacer click/tap en una imagen, SVG o
 diagrama mermaid dentro de un post, se abre un overlay a pantalla completa. Usa
-**delegación de eventos** sobre `.post-content`, así que funciona aunque mermaid
-renderice su `<svg>` de forma asíncrona. Sin dependencias.
+**delegación de eventos** sobre `.post-content` (o `.syn-graph` en la página de
+Synapsis, cuyo grafo vive fuera de `.post-content`), así que funciona aunque
+mermaid renderice su `<svg>` de forma asíncrona. Los clicks sobre `<a>` no se
+interceptan — en el grafo de Synapsis los nodos siguen navegando a su post; el
+zoom se dispara clickeando el lienzo. Sin dependencias.
 
 Controles:
 

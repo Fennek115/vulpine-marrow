@@ -1,9 +1,11 @@
 /* Vulpine Marrow — lightbox con zoom (rueda) + pan (arrastrar).
    Clickea imágenes, SVG y diagramas mermaid en los posts para verlos a pantalla.
-   Sin dependencias. Usa delegación de eventos sobre .post-content, así que
-   funciona aunque mermaid renderice su <svg> de forma asíncrona. */
+   Sin dependencias. Usa delegación de eventos sobre .post-content (o el grafo
+   de Synapsis, .syn-graph), así que funciona aunque mermaid renderice su <svg>
+   de forma asíncrona. Los clicks sobre <a> (nodos con click de mermaid) no se
+   interceptan. */
 (function () {
-  const content = document.querySelector(".post--single .post-content");
+  const content = document.querySelector(".post--single .post-content, .post--single .syn-graph");
   if (!content) return;
 
   let overlay, stage, capEl;

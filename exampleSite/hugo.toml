@@ -17,6 +17,22 @@ enableRobotsTXT = true
 [markup.highlight]
   noClasses = false
 
+# Motor de contenido relacionado: aristas automáticas del grafo de Synapsis
+# y sección "Notas relacionadas" al pie de cada post.
+[related]
+  includeNewer = true
+  threshold = 80
+  toLower = true
+  [[related.indices]]
+    name = "tags"
+    weight = 100
+  [[related.indices]]
+    name = "series"
+    weight = 30
+  [[related.indices]]
+    name = "date"
+    weight = 10
+
 [params]
   contentTypeName = "posts"
   subtitle = "Demo del tema Vulpine Marrow: violeta sobre negro, modo claro/oscuro, digital garden, mermaid y shortcodes."

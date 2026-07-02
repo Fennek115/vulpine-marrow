@@ -13,9 +13,9 @@
       "date" (.Date.Format "2006-01-02")
       "section" .Section
       "series" (index (.Params.series | default slice) 0)
-      "summary" (.Summary | plainify | htmlUnescape)
+      "summary" (partial "wikilinks-plain.html" (.Summary | plainify | htmlUnescape))
       "tags" (.Params.tags | default slice)
-      "content" (substr (.Plain | htmlUnescape) 0 8000)
+      "content" (substr (partial "wikilinks-plain.html" (.Plain | htmlUnescape)) 0 8000)
   -}}
   {{- $idx = $idx | append $entry -}}
 {{- end -}}

@@ -2,6 +2,40 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.4.1] — 2026-07-02
+
+### Fixed
+- **Wikilinks en texto plano**: los `[[clave|alias]]` ya no aparecen literales en
+  la meta `description`/`og:description`, en los summaries de los listados
+  (`post-card`), en el índice del buscador (`index.json`) ni en el feed RSS. El
+  partial `wikilinks.html` solo opera sobre el `.Content` renderizado (vista
+  single); estos contextos usan `.Summary`/`.Plain`/`.Description`, donde los
+  `[[ ]]` sobrevivían. Nuevo partial `wikilinks-plain.html` reduce la sintaxis a
+  su texto visible (`[[clave|alias]] → alias`, `[[clave]] → clave`) sin enlace, y
+  se aplica en `head.html`, `post-card.html`, `index.json` y un override
+  `_default/rss.xml`.
+
+## [0.4.0] — 2026-07-01
+
+### Added
+- **Grafo de Synapsis auto-actualizable**: además de las aristas por wikilink
+  explícito (flecha sólida), el grafo suma **aristas por afinidad temática**
+  (línea punteada `-.-`) calculadas en cada build con el motor *Related
+  Content* de Hugo (config `[related]`: `tags`/`series`/`date`). Top 3 por
+  post, pares deduplicados, sin repetir los ya citados por wikilink, y solo
+  entre posts del blog (las secciones tipo libro no entran automático). Un
+  post nuevo aparece en el grafo por sus tags sin necesidad de citarlo a mano.
+- **«Notas relacionadas»** (`partials/related.html`): hasta 3 posts afines al
+  pie de cada entrada del blog, con el mismo motor Related; automático, sin
+  tocar el contenido. Reutiliza las clases CSS de backlinks (sin CSS nuevo).
+- **Lightbox en el grafo de Synapsis**: `lightbox.js` también se engancha a
+  `.syn-graph` (antes solo `.post-content`), así el grafo se abre a pantalla
+  completa con zoom/pan/pinch como cualquier mermaid de un post. Los clicks
+  sobre nodos (enlaces `click` de mermaid) no se interceptan; cursor `zoom-in`
+  en el lienzo y `pointer` sobre los nodos (`09-lightbox.css`).
+
+Detalle en [`docs/features.md`](docs/features.md).
+
 ## [0.3.0] — 2026-06-29
 
 ### Added

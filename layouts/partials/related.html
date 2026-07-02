@@ -1,0 +1,24 @@
+{{- /*
+  Notas relacionadas del digital garden: posts afines por tema, calculados
+  automáticamente con el motor Related de Hugo (config [related] en hugo.toml,
+  afinidad por tags/series). Complementa los backlinks: éstos son citas
+  explícitas vía [[wikilink]]; esto es afinidad temática sin intervención
+  manual. Solo aplica al blog — el Códice tiene su propia navegación.
+  Reutiliza las clases de backlinks para no duplicar CSS.
+*/ -}}
+{{- if eq .Type "posts" -}}
+  {{- $related := first 3 (where (.Site.RegularPages.Related .) "Type" "posts") -}}
+  {{- with $related -}}
+  <aside class="backlinks backlinks--related">
+    <h2 class="backlinks__title">Notas relacionadas</h2>
+    <ul class="backlinks__list">
+      {{- range . }}
+        <li class="backlinks__item">
+          <a class="backlinks__link" href="{{ .RelPermalink }}">{{ .Title }}</a>
+          {{- with .Params.summary }}<span class="backlinks__summary">{{ . }}</span>{{ end -}}
+        </li>
+      {{- end }}
+    </ul>
+  </aside>
+  {{- end -}}
+{{- end -}}

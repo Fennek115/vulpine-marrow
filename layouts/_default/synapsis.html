@@ -36,6 +36,35 @@
     {{- end -}}
   {{- end -}}
 
+  {{/* ============================================================
+       Aristas automáticas — afinidad temática vía el motor Related
+       de Hugo (tags/series, config [related] en hugo.toml). Solo el
+       blog: el Códice ya tiene su orden de lectura y ahogaría el
+       grafo. No se duplican pares ya unidos por wikilink explícito.
+       ============================================================ */}}
+  {{- $autoEdges := slice -}}
+  {{- $pairSeen := dict -}}
+  {{- range $e := $edges -}}
+    {{- $pairSeen = merge $pairSeen (dict (delimit (sort (slice $e.s $e.t)) "->") true) -}}
+  {{- end -}}
+  {{- range $p := where $pages "Type" "posts" -}}
+    {{- $src := path.Base $p.RelPermalink -}}
+    {{- range first 3 (where ($p.Site.RegularPages.Related $p) "Type" "posts") -}}
+      {{- $tgt := path.Base .RelPermalink -}}
+      {{- $pair := delimit (sort (slice $src $tgt)) "->" -}}
+      {{- if not (isset $pairSeen $pair) -}}
+        {{- $pairSeen = merge $pairSeen (dict $pair true) -}}
+        {{- $autoEdges = $autoEdges | append (dict "s" $src "t" $tgt) -}}
+        {{- range (slice $src $tgt) -}}
+          {{- if not (isset $seen .) -}}
+            {{- $seen = merge $seen (dict . true) -}}
+            {{- $nodes = $nodes | append . -}}
+          {{- end -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+
   {{/* key -> id secuencial; conteo de entradas (backlinks) para el hub */}}
   {{- $idmap := dict -}}
   {{- range $i, $k := $nodes -}}{{- $idmap = merge $idmap (dict $k (printf "n%d" $i)) -}}{{- end -}}
@@ -48,10 +77,11 @@
   <section class="syn-section">
     <h2 class="syn-h">Grafo de notas</h2>
     {{- if gt (len $nodes) 0 }}
-    <p class="syn-note">{{ len $nodes }} notas conectadas · {{ len $edges }} enlaces. Cada flecha va de la nota que cita hacia la citada; hacé clic en un nodo para abrir el post.</p>
+    <p class="syn-note">{{ len $nodes }} notas conectadas · {{ len $edges }} citas · {{ len $autoEdges }} enlaces por afinidad. Flecha sólida: la nota que cita apunta a la citada. Línea punteada: afinidad temática (tags compartidos), calculada en cada build. Clic en un nodo abre el post.</p>
     {{- $lines := slice "flowchart TD" -}}
     {{- range $k := $nodes -}}{{- $p := index $byKey $k -}}{{- $lbl := replaceRE `"` "'" $p.Title -}}{{- $lines = $lines | append (printf `  %s["%s"]` (index $idmap $k) $lbl) -}}{{- end -}}
     {{- range $e := $edges -}}{{- $lines = $lines | append (printf `  %s --> %s` (index $idmap $e.s) (index $idmap $e.t)) -}}{{- end -}}
+    {{- range $e := $autoEdges -}}{{- $lines = $lines | append (printf `  %s -.- %s` (index $idmap $e.s) (index $idmap $e.t)) -}}{{- end -}}
     {{- range $k := $nodes -}}{{- $p := index $byKey $k -}}{{- $lines = $lines | append (printf `  click %s "%s"` (index $idmap $k) $p.RelPermalink) -}}{{- end -}}
     {{- $lines = $lines | append `  classDef hub fill:#9141ac,stroke:#c471ed,color:#fff,stroke-width:2px;` -}}
     {{- range $k := $nodes -}}{{- if ge (int (index $incount $k | default 0)) 2 -}}{{- $lines = $lines | append (printf `  class %s hub` (index $idmap $k)) -}}{{- end -}}{{- end -}}

@@ -41,6 +41,8 @@
 
   {{ partial "backlinks.html" . }}
 
+  {{ partial "related.html" . }}
+
   {{ if or (eq .Type $.Site.Params.contentTypeName) (eq .Type "codice") }}
     {{ partial "posts_pagination.html" . }}
   {{ end }}

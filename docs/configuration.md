@@ -94,6 +94,32 @@ La **landing de portafolio** es la sección `portafolio`: creá
 `portafolio/list.html` lista los posts con el tag `proyecto`. Sumá ese tag en el
 front matter de los posts que quieras incluir.
 
+## Contenido relacionado (grafo de Synapsis + «Notas relacionadas»)
+
+Las **aristas automáticas** del grafo de Synapsis y la sección **«Notas
+relacionadas»** al pie de cada post usan el motor *Related Content* de Hugo.
+Se configura en `hugo.toml` (sin esto Hugo usa su default, basado en `keywords`,
+que casi ningún post trae — conviene definir índices sobre lo que sí se usa):
+
+```toml
+[related]
+  includeNewer = true   # posts viejos también enlazan a los nuevos
+  threshold = 80
+  toLower = true
+  [[related.indices]]
+    name = "tags"
+    weight = 100
+  [[related.indices]]
+    name = "series"
+    weight = 30
+  [[related.indices]]
+    name = "date"
+    weight = 10
+```
+
+La afinidad sale de los `tags` del front matter: cuanto mejor etiquetados los
+posts, mejor el grafo. Ambas features se limitan a `Type == "posts"`.
+
 ## Estructura de contenido esperada
 
 - **Blog**: páginas con `Type == "posts"` (por `contentTypeName`). El listado
