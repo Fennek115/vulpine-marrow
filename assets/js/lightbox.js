@@ -228,6 +228,15 @@
     svg.style.maxWidth = "none";
     svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
     sizeTo(svg, w, h);
+    // piezas estilizadas por CSS descendente (.codice-svg .trazo, …): el clon
+    // necesita conservar el wrapper o pierde colores, fuentes y animaciones
+    const ctx = el.closest(".codice-svg");
+    if (ctx) {
+      const box = document.createElement("div");
+      box.className = ctx.className;
+      box.appendChild(svg);
+      return box;
+    }
     return svg;
   }
 

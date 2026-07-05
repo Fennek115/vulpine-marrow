@@ -52,14 +52,25 @@ html.vm-lightbox-open body {
 .vm-lightbox__stage.is-grabbing { cursor: grabbing; }
 .vm-lightbox__stage > * {
   display: block;
-  max-width: 90vw;
-  max-height: 86vh;
+  /* mismos topes que sizeTo() en lightbox.js (0.92 / 0.88) para no
+     recortar un solo eje del clon y deformar la relación de aspecto */
+  max-width: 92vw;
+  max-height: 88vh;
   border-radius: var(--vm-radius-sm, 4px);
   user-select: none;
   -webkit-user-drag: none;
 }
 .vm-lightbox__stage > svg {
   background: var(--vm-bg-blog);
+}
+
+/* clon de una pieza .codice-svg: el wrapper viaja con el clon (lightbox.js)
+   para conservar sus estilos descendentes; acá solo se neutraliza el layout
+   de página (margen/máximos) — el marco y el fondo de la pieza se conservan */
+.vm-lightbox__stage > .codice-svg {
+  margin: 0;
+  max-width: none;
+  max-height: none;
 }
 
 /* barra de herramientas */

@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="Terminal de código, sin carcasa física, con siete ojos romboidales asomando entre las líneas de texto; el séptimo está cerrado y roto fuera del marco">
+  <rect class="trazo" x="40" y="34" width="560" height="316" rx="8"/>
+  <text class="ruta" x="56" y="60">~/codice/07_percepcion.log</text>
+  <line class="fino" x1="40" y1="76" x2="600" y2="76"/>
+
+  <text class="codigo" x="56" y="110">function percibir(dato) {</text>
+  <text class="codigo" x="56" y="140">  si (dato.oculto) {</text>
+  <text class="codigo" x="56" y="170">    devolver dato.oculto ?? dato;</text>
+  <text class="codigo" x="56" y="200">  }</text>
+  <text class="codigo" x="56" y="230">  registrar(ciclo++);</text>
+  <text class="codigo" x="56" y="260">}</text>
+  <text class="codigo" x="56" y="290" opacity=".4">// el patrón se repite. el patrón se repite.</text>
+  <text class="prompt" x="56" y="330">$</text>
+  <rect class="cursor tinta" x="72" y="318" width="9" height="14"/>
+
+  <!-- los grupos animados por transform (parpado) van en un <g> interno:
+       la animación CSS pisa el atributo transform, así que el translate
+       de posición tiene que vivir en un <g> externo propio -->
+  <g transform="translate(480 104)"><g class="parpado">
+    <path class="rombo" d="M0 -13 L13 0 L0 13 L-13 0 Z"/>
+    <circle class="tinta" cx="0" cy="0" r="4"/>
+    <circle class="brillo" cx="-1.4" cy="-1.4" r="1.3"/>
+  </g></g>
+  <g transform="translate(524 134)">
+    <path class="rombo" d="M0 -10 L10 0 L0 10 L-10 0 Z"/>
+    <circle class="tinta" cx="0" cy="0" r="3.2"/>
+    <circle class="brillo" cx="-1.1" cy="-1.1" r="1"/>
+  </g>
+  <g transform="translate(460 164)">
+    <path class="rombo" d="M0 -9 L9 0 L0 9 L-9 0 Z"/>
+    <circle class="tinta" cx="0" cy="0" r="2.8"/>
+    <circle class="brillo" cx="-1" cy="-1" r="1"/>
+  </g>
+  <g transform="translate(544 194)"><g class="parpado" style="animation-delay:3.5s">
+    <path class="rombo" d="M0 -8 L8 0 L0 8 L-8 0 Z"/>
+    <circle class="tinta" cx="0" cy="0" r="2.4"/>
+    <circle class="brillo" cx="-0.9" cy="-0.9" r=".9"/>
+  </g></g>
+  <g transform="translate(494 224)">
+    <path class="rombo" d="M0 -7 L7 0 L0 7 L-7 0 Z"/>
+    <circle class="tinta" cx="0" cy="0" r="2"/>
+    <circle class="brillo" cx="-0.8" cy="-0.8" r=".8"/>
+  </g>
+  <g transform="translate(432 254)">
+    <path class="rombo" d="M0 -11 L11 0 L0 11 L-11 0 Z"/>
+    <circle class="tinta" cx="0" cy="0" r="3.4"/>
+    <circle class="brillo" cx="-1.2" cy="-1.2" r="1.1"/>
+  </g>
+
+  <path class="trazo" d="M14 292 L26 285 L38 292 L26 299 Z" opacity=".7"/>
+</svg>

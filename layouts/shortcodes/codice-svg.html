@@ -1,0 +1,7 @@
+{{- $name := .Get 0 -}}
+{{- $partial := printf "codice-svg/%s.html" $name -}}
+{{- if templates.Exists (printf "partials/%s" $partial) -}}
+<div class="codice-svg">{{ partial $partial . }}</div>
+{{- else -}}
+{{- errorf "codice-svg: no existe layouts/partials/codice-svg/%s.html (shortcode en %s)" $name .Page.File.Path -}}
+{{- end -}}

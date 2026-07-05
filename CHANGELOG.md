@@ -2,6 +2,26 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.4.3] — 2026-07-04
+
+### Fixed
+- **Lightbox: los SVG inline estilizados por CSS descendente ya no pierden su
+  estilo al ampliarse.** El clon que va al stage era el `<svg>` pelado, así que
+  las piezas del laboratorio (`.codice-svg`) quedaban sin colores, sin fuentes
+  y sin animaciones (una mancha oscura sobre el fondo del overlay). Ahora
+  `lightbox.js` conserva el wrapper con sus clases al clonar, y
+  `skin/09-lightbox.css` neutraliza solo su layout de página
+  (margen/máximos) — el marco de la pieza se conserva y las animaciones
+  siguen corriendo dentro del lightbox.
+- **Lightbox: topes CSS del stage alineados con `sizeTo()`** (92vw/88vh en
+  ambos lados). El desajuste anterior (90vw/86vh en CSS vs 0.92/0.88 en JS)
+  podía recortar un solo eje del clon y deformar la relación de aspecto.
+- **Pieza `codice-svg/terminal`: ojos `parpado` reposicionados.** Los grupos
+  animados tenían el `translate` de posición como atributo `transform` y la
+  animación CSS de parpadeo (que también anima `transform`) lo pisaba,
+  desplazando los ojos al origen del SVG. El translate ahora vive en un `<g>`
+  externo propio y la clase animada en un `<g>` interno.
+
 ## [0.4.2] — 2026-07-02
 
 ### Added

@@ -1,0 +1,84 @@
+/* ── codice-svg: piezas del "laboratorio SVG" — informática + ocultismo ──
+   Ilustraciones lineales para el Códice: trazo violeta heredado de los
+   tokens (--vm-accent / --vm-purple), sin peso de imagen, con las mismas
+   clases compartidas por todas las piezas para no repetir <style> por SVG. */
+
+.codice-svg {
+  margin: 2.4rem auto;
+  max-width: 480px;
+  padding: 1.6rem 1.2rem;
+  background: var(--vm-code-bg);
+  border: 1px solid var(--vm-border);
+  border-radius: 6px;
+  transition: border-color .15s;
+}
+.codice-svg:hover { border-color: var(--vm-border-2); }
+.codice-svg svg { display: block; width: 100%; height: auto; }
+
+/* trazo / relleno */
+.codice-svg .trazo  { stroke: var(--vm-accent); fill: none; stroke-width: 2; }
+.codice-svg .fino   { stroke: var(--vm-accent); fill: none; stroke-width: 1; opacity: .4; }
+.codice-svg .tinta  { fill: var(--vm-accent); }
+.codice-svg .brillo { fill: var(--vm-purple); }
+
+/* texto: código, rutas, prompt, glifos alquímicos, volcado hex */
+.codice-svg .codigo  { fill: var(--vm-accent); font: 13px "Fira Code", monospace; opacity: .55; }
+.codice-svg .ruta    { fill: var(--vm-accent); font: 12px "Fira Code", monospace; opacity: .4; }
+.codice-svg .prompt  { fill: var(--vm-accent); font: 13px "Fira Code", monospace; }
+.codice-svg .prompt-grande { font: bold 30px "Fira Code", monospace; text-anchor: middle; }
+.codice-svg .glifo   { fill: var(--vm-accent); font: 18px "Fira Code", monospace; opacity: .8; text-anchor: middle; }
+.codice-svg .trigrama { opacity: .4; font-size: 20px; }
+.codice-svg .hex     { fill: var(--vm-accent); font: 13px "Fira Code", monospace; opacity: .5; }
+.codice-svg .hexvivo { fill: var(--vm-accent); font: 13px "Fira Code", monospace; }
+.codice-svg .glitch  { fill: var(--vm-purple); font: 13px "Fira Code", monospace; }
+.codice-svg .glosa   { fill: var(--vm-accent); font: 11px "Fira Code", monospace; opacity: .45; text-anchor: middle; }
+.codice-svg .centrado { text-anchor: middle; }
+
+/* forma de ojo romboidal (terminal.svg) */
+.codice-svg .rombo { stroke: var(--vm-accent); fill: none; stroke-width: 1.6; }
+
+/* cuadrícula binaria en reposo / viva (automata.svg) */
+.codice-svg .cero { fill: var(--vm-accent); font: 15px "Fira Code", monospace; text-anchor: middle; opacity: .18; }
+.codice-svg .uno  { font: 15px "Fira Code", monospace; text-anchor: middle; }
+
+/* animaciones — respetan prefers-reduced-motion */
+.codice-svg .parpado { transform-box: fill-box; transform-origin: center; animation: codice-svg-parpadeo 7s infinite; }
+.codice-svg .cursor  { animation: codice-svg-latido 1.2s steps(1) infinite; }
+.codice-svg .cursor2 { animation: codice-svg-latido 1.2s steps(1) infinite; animation-delay: .6s; }
+.codice-svg .tiembla { animation: codice-svg-temblor 4s steps(2) infinite; }
+.codice-svg .rueda   { animation: codice-svg-giro 180s linear infinite; }
+
+/* las cuatro generaciones del glider (automata.svg) — cada clase es el patrón
+   on/off de una celda a lo largo del ciclo completo de 8s (2s por generación) */
+.codice-svg .p1   { animation: codice-svg-vida-p1   8s infinite; }
+.codice-svg .p2   { animation: codice-svg-vida-p2   8s infinite; }
+.codice-svg .p4   { animation: codice-svg-vida-p4   8s infinite; }
+.codice-svg .p123 { animation: codice-svg-vida-p123 8s infinite; }
+.codice-svg .p13  { animation: codice-svg-vida-p13  8s infinite; }
+.codice-svg .p12  { animation: codice-svg-vida-p12  8s infinite; }
+.codice-svg .p234 { animation: codice-svg-vida-p234 8s infinite; }
+.codice-svg .p34  { animation: codice-svg-vida-p34  8s infinite; }
+
+@keyframes codice-svg-parpadeo { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.08); } }
+@keyframes codice-svg-latido   { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes codice-svg-temblor  { 0%, 90%, 100% { transform: translateX(0); } 93% { transform: translateX(3px); } 96% { transform: translateX(-2px); } }
+@keyframes codice-svg-giro     { to { transform: rotate(360deg); } }
+
+@keyframes codice-svg-vida-p1   { 0%, 24.9% { opacity: 1; } 25%, 100% { opacity: 0; } }
+@keyframes codice-svg-vida-p2   { 0%, 24.9% { opacity: 0; } 25%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes codice-svg-vida-p4   { 0%, 74.9% { opacity: 0; } 75%, 100% { opacity: 1; } }
+@keyframes codice-svg-vida-p123 { 0%, 74.9% { opacity: 1; } 75%, 100% { opacity: 0; } }
+@keyframes codice-svg-vida-p13  { 0%, 24.9% { opacity: 1; } 25%, 49.9% { opacity: 0; } 50%, 74.9% { opacity: 1; } 75%, 100% { opacity: 0; } }
+@keyframes codice-svg-vida-p12  { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes codice-svg-vida-p234 { 0%, 24.9% { opacity: 0; } 25%, 100% { opacity: 1; } }
+@keyframes codice-svg-vida-p34  { 0%, 49.9% { opacity: 0; } 50%, 100% { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .codice-svg .parpado,
+  .codice-svg .cursor,
+  .codice-svg .cursor2,
+  .codice-svg .tiembla,
+  .codice-svg .rueda,
+  .codice-svg .p1, .codice-svg .p2, .codice-svg .p4, .codice-svg .p123,
+  .codice-svg .p13, .codice-svg .p12, .codice-svg .p234, .codice-svg .p34 { animation: none; opacity: .55; }
+}
