@@ -1,0 +1,94 @@
+{{- /*
+  Vista de impresión / export PDF de un post (output format "print").
+  Documento standalone (sin chrome del sitio): portada minimal → un solo
+  índice → contenido. El usuario exporta con el botón o Ctrl/Cmd+P →
+  "Guardar como PDF". Estilos en assets/css/print/report.css.
+  El contenido pasa por wikilinks.html (igual que single.html) para que
+  los [[ ]] se resuelvan. Mermaid se re-renderiza con paleta clara.
+*/ -}}
+<!DOCTYPE html>
+<html lang="{{ .Site.Language.Lang }}" class="pf-print">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>{{ .Title | plainify }} — dust115 · skullfox archive</title>
+<link rel="stylesheet" href="{{ "vm/tokens/fonts.css" | absURL }}">
+{{- $order := slice "css/tokens/colors.css" "css/tokens/typography.css" "css/tokens/spacing.css" "css/print/report.css" -}}
+{{- $sheets := slice -}}
+{{- range $order }}{{ with resources.Get . }}{{ $sheets = $sheets | append . }}{{ end }}{{ end -}}
+{{- $bundle := $sheets | resources.Concat "css/pf-print.css" | minify | fingerprint -}}
+<link rel="stylesheet" href="{{ $bundle.Permalink }}">
+</head>
+<body class="pf-doc">
+
+  <div class="pf-toolbar">
+    <button onclick="window.print()">⎙ Exportar PDF</button>
+    <span class="pf-hint">A4 · Ctrl/Cmd + P → Guardar como PDF</span>
+  </div>
+
+  {{- /* ---------- Portada ---------- */ -}}
+  <header class="pf-cover">
+    <div class="pf-cover-top">
+      <span class="pf-mark">✦</span>
+      <div>
+        <div class="pf-wm">dust115 · skullfox archive</div>
+        <div class="pf-wm-sub">offensive &amp; defensive security</div>
+      </div>
+    </div>
+
+    <div class="pf-cover-mid">
+      {{- with .Params.series }}<div class="pf-kicker">{{ index . 0 }}</div>
+      {{- else }}{{ with .Params.categories }}<div class="pf-kicker">{{ delimit . " · " }}</div>{{ end }}{{ end }}
+      <h1 class="pf-title">{{ .Title | markdownify }}</h1>
+      {{- with .Summary }}<p class="pf-tagline">{{ . | plainify }}</p>{{ end }}
+    </div>
+
+    <dl class="pf-meta">
+      {{- if .Date }}<dt>fecha</dt><dd>{{ .Date.Format "2006-01-02" }}</dd>{{ end }}
+      {{- with .Params.tags }}<dt>tags</dt><dd>{{ delimit . " · " }}</dd>{{ end }}
+      <dt>fuente</dt><dd>{{ .Permalink }}</dd>
+      <dt>snapshot</dt><dd>{{ now.Format "2006-01-02" }}</dd>
+    </dl>
+
+    <div class="pf-cover-foot">
+      <span>TLP:CLEAR</span>
+      <span>una huella en la piedra digital</span>
+    </div>
+  </header>
+
+  {{- /* ---------- Índice único ---------- */ -}}
+  {{ if and (.Params.Toc | default .Site.Params.Toc) (gt (len .TableOfContents) 60) }}
+  <nav class="pf-toc">
+    <h2>{{ (.Params.TocTitle | default .Site.Params.TocTitle) | default "Índice" }}</h2>
+    {{ .TableOfContents }}
+  </nav>
+  {{ end }}
+
+  {{- /* ---------- Contenido ---------- */ -}}
+  <main class="pf-content post-content">
+    {{- /* safeHTML: el partial devuelve string cuando resuelve wikilinks
+           (replaceRE); sin esto el contenido saldría escapado */ -}}
+    {{ partial "wikilinks.html" . | safeHTML }}
+  </main>
+
+  {{- /* mermaid: paleta clara para impresión (no auto-print) */ -}}
+  {{ if .Store.Get "hasMermaid" }}
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    document.querySelectorAll('pre.mermaid').forEach(function(el){ el.dataset.vmSrc = el.textContent; });
+    mermaid.initialize({
+      startOnLoad: false, theme: 'base', securityLevel: 'loose',
+      themeVariables: {
+        darkMode: false, background: '#ffffff',
+        primaryColor: '#f3ecfa', primaryTextColor: '#241f31', primaryBorderColor: '#9141ac',
+        secondaryColor: '#eadcf6', tertiaryColor: '#faf7fc',
+        lineColor: '#9141ac', fontFamily: "'Fira Code', monospace"
+      }
+    });
+    mermaid.run({ querySelector: 'pre.mermaid' });
+  </script>
+  {{ end }}
+
+</body>
+</html>

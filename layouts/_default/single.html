@@ -17,6 +17,7 @@
     {{- end -}}
     <span class="post-reading-time">{{ $sep }}{{ .ReadingTime }} {{ $.Site.Params.minuteReadingTime | default "min de lectura" }}</span>
     {{- with .Params.tags }} · <span class="post-meta-tags">{{ delimit . " / " }}</span>{{- end -}}
+    {{- with .OutputFormats.Get "print" }} · <a class="post-pdf-link" href="{{ .RelPermalink }}" title="Vista imprimible — exportar a PDF">⎙ PDF</a>{{- end -}}
   </div>
 
   <hr>

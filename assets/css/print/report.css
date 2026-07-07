@@ -1,0 +1,295 @@
+/* ============================================================
+   Vulpine Marrow — Print / Export PDF (report.css)
+   Hoja de impresión sobria para exportar un post del blog a PDF
+   (listo para LinkedIn). Estética violeta + Fira Code, pero
+   minimal y profesional: sin sello grande, sin glow, sin grid,
+   sin mottos esotéricos. La marca "dust115 · skullfox archive"
+   queda chica en el pie de cada página y en la portada.
+
+   Página CLARA (bone/blanco) por decisión de legibilidad e
+   impresión; conserva el acento violeta de marca. Un futuro
+   modo oscuro full-bleed necesitaría Paged.js (fase posterior).
+   Objetivo: nada de tablas cortadas, títulos huérfanos ni
+   índices repetidos.
+   ============================================================ */
+
+/* ---- paleta local del documento (clara, marca preservada) ---- */
+:root {
+  --pf-paper:   #ffffff;
+  --pf-panel:   #faf7fc;   /* fondo de bloques de código/callouts */
+  --pf-ink:     #241f31;   /* texto principal casi-negro violáceo */
+  --pf-muted:   #5b5470;
+  --pf-faint:   #8a8394;
+  --pf-accent:  #9141ac;   /* violeta de marca */
+  --pf-accent-2:#7d2f96;
+  --pf-hair:    rgba(145, 65, 172, .18);
+  --pf-line:    rgba(145, 65, 172, .32);
+  --pf-mono: var(--vm-font-mono, 'Fira Code', ui-monospace, monospace);
+}
+
+/* ============================================================
+   Página + pie corrido (número + marca) vía @page margin boxes
+   ============================================================ */
+@page {
+  size: A4;
+  margin: 17mm 16mm 16mm;
+  @bottom-left {
+    content: "dust115 · skullfox archive";
+    font-family: 'Fira Code', monospace;
+    font-size: 7pt;
+    letter-spacing: .04em;
+    color: #8a8394;
+  }
+  @bottom-right {
+    content: "pág " counter(page) " / " counter(pages);
+    font-family: 'Fira Code', monospace;
+    font-size: 7pt;
+    color: #8a8394;
+  }
+}
+/* la portada va sin pie */
+@page cover { @bottom-left { content: ""; } @bottom-right { content: ""; } }
+
+* { box-sizing: border-box; }
+
+.pf-doc {
+  margin: 0;
+  color: var(--pf-ink);
+  background: var(--pf-paper);
+  font-family: var(--pf-mono);
+  font-size: 10.2pt;
+  line-height: 1.5;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ============================================================
+   Barra de acción (solo pantalla; se oculta al imprimir)
+   ============================================================ */
+.pf-toolbar {
+  position: fixed; top: 14px; right: 14px; z-index: 50;
+  display: flex; gap: 10px; align-items: center;
+  background: #ffffff; border: 1px solid var(--pf-line);
+  border-radius: 8px; padding: 8px 10px;
+  box-shadow: 0 6px 24px rgba(36, 31, 49, .14);
+  font-size: 12px;
+}
+.pf-toolbar button {
+  font-family: var(--pf-mono); font-size: 12px; font-weight: 700;
+  letter-spacing: .03em; cursor: pointer;
+  color: #fff; background: var(--pf-accent);
+  border: 1px solid var(--pf-accent); border-radius: 6px;
+  padding: 7px 14px;
+}
+.pf-toolbar button:hover { background: var(--pf-accent-2); }
+.pf-toolbar .pf-hint { color: var(--pf-faint); }
+
+/* ============================================================
+   Portada — minimal (marca chica, sin sello grande)
+   ============================================================ */
+.pf-cover {
+  page: cover;
+  break-after: page;
+  min-height: calc(297mm - 34mm);
+  display: flex;
+  flex-direction: column;
+  padding-top: 6mm;
+}
+.pf-cover-top { display: flex; align-items: center; gap: 10px; }
+.pf-mark { color: var(--pf-accent); font-size: 15px; line-height: 1; }
+.pf-wm {
+  font-size: 9pt; font-weight: 800; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--pf-accent-2);
+}
+.pf-wm-sub { font-size: 7.5pt; letter-spacing: .06em; color: var(--pf-faint); margin-top: 1px; }
+
+.pf-cover-mid { margin-top: auto; padding: 28mm 0 0; }
+.pf-kicker {
+  font-size: 8.5pt; font-weight: 800; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--pf-accent);
+  margin-bottom: 10px;
+}
+.pf-title {
+  margin: 0; font-size: 26pt; line-height: 1.14; font-weight: 700;
+  letter-spacing: -.2px; color: var(--pf-ink); max-width: 20ch; text-wrap: balance;
+}
+.pf-tagline { margin: 12px 0 0; color: var(--pf-muted); font-size: 11pt; max-width: 58ch; }
+
+.pf-meta {
+  margin: 22px 0 0;
+  border: 1px solid var(--pf-line);
+  border-left: 3px solid var(--pf-accent);
+  border-radius: 6px;
+  background: var(--pf-panel);
+  padding: 12px 15px;
+  display: grid; grid-template-columns: 26mm 1fr; gap: 4px 14px;
+  font-size: 9pt; max-width: 120mm;
+}
+.pf-meta dt { color: var(--pf-faint); font-weight: 600; }
+.pf-meta dt::before { content: "› "; color: var(--pf-accent); }
+.pf-meta dd { margin: 0; color: var(--pf-ink); word-break: break-word; }
+
+.pf-cover-foot {
+  margin-top: auto; padding-top: 18px;
+  display: flex; gap: 14px; align-items: center;
+  border-top: 1px solid var(--pf-hair);
+  font-size: 8pt; color: var(--pf-faint); letter-spacing: .04em;
+}
+.pf-cover-foot span:last-child { margin-left: auto; font-style: italic; }
+
+/* ============================================================
+   Índice (uno solo — no se repite el TOC del post)
+   ============================================================ */
+.pf-toc {
+  break-after: page;
+  border-top: 2px solid var(--pf-accent);
+  padding-top: 8px;
+}
+.pf-toc > h2 {
+  font-size: 9pt; font-weight: 800; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--pf-accent-2); margin: 0 0 10px;
+}
+.pf-toc nav ul { list-style: none; margin: 0; padding: 0; }
+.pf-toc nav > ul > li { margin: 0 0 3px; }
+.pf-toc nav ul ul { padding-left: 14px; }
+.pf-toc nav li { break-inside: avoid; }
+.pf-toc a {
+  color: var(--pf-ink); text-decoration: none;
+  font-size: 9.5pt; border-bottom: 1px dotted var(--pf-hair);
+}
+.pf-toc nav ul ul a { color: var(--pf-muted); font-size: 9pt; }
+
+/* ============================================================
+   Contenido — reglas anti-huérfano / anti-corte
+   ============================================================ */
+.pf-content { max-width: 100%; }
+.pf-content > div { max-width: 100%; }
+
+.pf-content h2, .pf-content h3, .pf-content h4 {
+  color: var(--pf-ink); font-weight: 700; line-height: 1.25;
+  break-after: avoid;           /* el título nunca queda solo al pie */
+  break-inside: avoid;
+}
+.pf-content h2 {
+  font-size: 15pt; margin: 20px 0 8px;
+  padding-bottom: 5px; border-bottom: 1px solid var(--pf-line);
+}
+.pf-content h2::before { content: "▚ "; color: var(--pf-accent); font-size: .8em; }
+.pf-content h3 { font-size: 12.5pt; margin: 15px 0 6px; color: var(--pf-accent-2); }
+.pf-content h4 { font-size: 11pt; margin: 12px 0 5px; }
+
+.pf-content p { margin: 0 0 8px; orphans: 3; widows: 3; }
+.pf-content ul, .pf-content ol { margin: 0 0 8px; padding-left: 20px; }
+.pf-content li { margin: 0 0 3px; }
+.pf-content a { color: var(--pf-accent-2); text-decoration: none; word-break: break-word; }
+.pf-content strong, .pf-content b { color: var(--pf-ink); font-weight: 700; }
+.pf-content hr { border: 0; border-top: 1px solid var(--pf-hair); margin: 14px 0; }
+
+/* ---- código inline + bloques ---- */
+.pf-content code {
+  font-family: var(--pf-mono); font-size: .92em;
+  background: var(--pf-panel); color: var(--pf-accent-2);
+  padding: 1px 4px; border-radius: 3px;
+}
+.pf-content pre {
+  font-family: var(--pf-mono); font-size: 8.4pt; line-height: 1.5;
+  background: var(--pf-panel); color: var(--pf-ink);
+  border: 1px solid var(--pf-hair); border-left: 3px solid var(--pf-accent);
+  border-radius: 5px; padding: 10px 12px; margin: 0 0 10px;
+  white-space: pre-wrap; word-break: break-word;
+  break-inside: avoid;          /* no partir bloques de código */
+}
+.pf-content pre code { background: none; color: inherit; padding: 0; }
+.pf-content .highlight { margin: 0 0 10px; break-inside: avoid; }
+.pf-content .highlight pre { margin: 0; }
+
+/* ---- tablas: no cortarlas, y repetir la cabecera si desbordan ---- */
+.pf-content table {
+  width: 100%; border-collapse: collapse; font-size: 8.6pt;
+  margin: 0 0 12px; break-inside: avoid;
+}
+.pf-content thead { display: table-header-group; }   /* repite <thead> por página */
+.pf-content tr { break-inside: avoid; }
+.pf-content th {
+  text-align: left; font-size: 7.6pt; font-weight: 800;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--pf-accent-2);
+  padding: 6px 8px; border-bottom: 1.5px solid var(--pf-line);
+}
+.pf-content td {
+  padding: 6px 8px; border-bottom: 1px solid var(--pf-hair);
+  vertical-align: top; color: var(--pf-ink);
+}
+
+.pf-content blockquote {
+  margin: 0 0 10px; padding: 4px 0 4px 14px;
+  border-left: 3px solid var(--pf-line); color: var(--pf-muted);
+  font-style: italic; break-inside: avoid;
+}
+
+.pf-content img, .pf-content svg { max-width: 100%; height: auto; }
+.pf-content figure, .pf-content .vm-figure { margin: 12px 0; break-inside: avoid; text-align: center; }
+.pf-content .vm-figure__cap { font-size: 8pt; color: var(--pf-muted); margin-top: 5px; }
+.pf-content .vm-figure__credit { font-size: 7pt; color: var(--pf-faint); }
+
+/* ---- mermaid: centrado, paleta clara, sin cortar ---- */
+.pf-content pre.mermaid {
+  background: none; border: 0; padding: 0; text-align: center;
+  break-inside: avoid; white-space: normal;
+}
+
+/* ============================================================
+   Shortcodes del tema (callout / tlp / command)
+   ============================================================ */
+.pf-content .callout {
+  border: 1px solid var(--pf-hair); border-left: 3px solid var(--pf-accent);
+  border-radius: 5px; background: var(--pf-panel);
+  padding: 9px 13px; margin: 12px 0; font-size: 9.2pt;
+  break-inside: avoid;
+}
+.pf-content .callout-warning { border-left-color: #c78a1e; }
+.pf-content .callout-danger  { border-left-color: #b23b52; }
+.pf-content .callout-tip     { border-left-color: #2f9e7a; }
+.pf-content .callout p:last-child { margin-bottom: 0; }
+
+.pf-content .vm-tlp {
+  border: 1px solid var(--pf-hair); border-radius: 5px;
+  padding: 7px 11px; margin: 0 0 12px; font-size: 8.4pt; color: var(--pf-muted);
+  break-inside: avoid;
+}
+.pf-content .vm-tlp__label { font-weight: 800; letter-spacing: .06em; color: var(--pf-accent-2); }
+
+.pf-content .cmd-block {
+  border: 1px solid var(--pf-hair); border-left: 3px solid var(--pf-accent);
+  border-radius: 5px; background: var(--pf-panel);
+  padding: 9px 12px; margin: 0 0 10px; break-inside: avoid;
+}
+.pf-content .cmd-prompt { color: var(--pf-accent); }
+.pf-content .cmd-code { font-family: var(--pf-mono); font-size: 8.6pt; white-space: pre-wrap; word-break: break-word; }
+.pf-content .cmd-copy { display: none; }   /* botón de copiar no aplica en PDF */
+
+/* wikilinks: se ven como enlaces normales; los rotos, discretos */
+.pf-content .wikilink { color: var(--pf-accent-2); }
+.pf-content .wikilink--broken { color: var(--pf-faint); border-bottom: 1px dotted var(--pf-faint); }
+.pf-content .hanchor { display: none; }
+
+/* ============================================================
+   Pantalla: mostrar el documento como hoja sobre un lienzo gris
+   ============================================================ */
+@media screen {
+  body.pf-doc { background: #e9e6ee; padding: 26px 0 70px; }
+  .pf-cover, .pf-toc, .pf-content {
+    width: 210mm; margin-inline: auto; background: var(--pf-paper);
+    padding-left: 16mm; padding-right: 16mm;
+    box-shadow: 0 2px 20px rgba(36, 31, 49, .12);
+  }
+  .pf-cover { padding-top: 17mm; padding-bottom: 16mm; min-height: 297mm; box-shadow: 0 2px 20px rgba(36,31,49,.12); margin-bottom: 10mm; }
+  .pf-toc { padding-top: 17mm; padding-bottom: 16mm; margin-bottom: 10mm; }
+  .pf-content { padding-top: 15mm; padding-bottom: 18mm; }
+}
+
+@media print {
+  .pf-toolbar { display: none !important; }
+  html, body.pf-doc { background: #fff; }
+  .pf-cover, .pf-toc, .pf-content { width: auto; margin: 0; padding: 0; box-shadow: none; min-height: 0; }
+  .pf-cover { min-height: calc(297mm - 34mm); }
+}

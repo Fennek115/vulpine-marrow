@@ -1,0 +1,118 @@
+{{ define "main" }}
+{{- /*
+  Constructor de informes PDF combinados.
+  Lista todos los posts del blog; el usuario elige cuáles entran y en qué
+  orden, y la selección se codifica en la URL de la vista print:
+      /informes/print.html?p=slug1,slug2,...&t=Título&s=Subtítulo
+  Esa URL es a la vez el "informe preconfigurado": guardarla o enlazarla
+  reproduce siempre la misma colección. Lógica en js/informes-builder.js.
+*/ -}}
+<article class="post post--single">
+  <h1 class="post-title">{{ .Title }}</h1>
+
+  {{ with .Content }}<div class="index-content">{{ . }}</div>{{ end }}
+
+  {{ $print := .OutputFormats.Get "print" }}
+  <div id="vm-informes" class="vm-inf" data-print="{{ $print.RelPermalink }}">
+
+    <div class="vm-inf__panel">
+      <label class="vm-inf__field">
+        <span>título del informe</span>
+        <input id="vm-inf-title" type="text" placeholder="Informe combinado" spellcheck="false">
+      </label>
+      <label class="vm-inf__field">
+        <span>subtítulo (opcional)</span>
+        <input id="vm-inf-sub" type="text" placeholder="" spellcheck="false">
+      </label>
+    </div>
+
+    <div class="vm-inf__cols">
+      <section class="vm-inf__pool">
+        <h2>piezas disponibles</h2>
+        <input id="vm-inf-filter" class="vm-inf__filter" type="search"
+               placeholder="filtrar por título o tag…" spellcheck="false" autocapitalize="off">
+        <ul class="vm-inf__list">
+          {{ range where site.RegularPages "Section" "posts" }}
+          {{ $slug := path.Base .RelPermalink }}
+          <li class="vm-inf__row"
+              data-slug="{{ $slug }}"
+              data-title="{{ .Title }}"
+              data-haystack="{{ lower .Title }} {{ lower (delimit (.Params.tags | default slice) " ") }}">
+            <label>
+              <input type="checkbox" data-slug="{{ $slug }}">
+              <span class="vm-inf__rowtitle">{{ .Title }}</span>
+              <span class="vm-inf__rowmeta">{{ .Date.Format "2006-01-02" }}{{ with .Params.tags }} · {{ delimit (first 3 .) " · " }}{{ end }}</span>
+            </label>
+          </li>
+          {{ end }}
+        </ul>
+      </section>
+
+      <section class="vm-inf__order">
+        <h2>orden del informe <span id="vm-inf-count"></span></h2>
+        <ol id="vm-inf-sel" class="vm-inf__sel"></ol>
+        <p id="vm-inf-hint" class="vm-inf__hint">Marca piezas a la izquierda; acá se define el orden de lectura.</p>
+        <div class="vm-inf__actions">
+          <button id="vm-inf-open" type="button" disabled>⎙ Generar informe</button>
+          <button id="vm-inf-copy" type="button" disabled>⧉ Copiar enlace</button>
+        </div>
+        <p id="vm-inf-msg" class="vm-inf__hint" role="status" aria-live="polite"></p>
+      </section>
+    </div>
+  </div>
+
+  <style>
+    .vm-inf { margin-top: 1.5rem; }
+    .vm-inf__panel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+    .vm-inf__field { display: flex; flex-direction: column; gap: 4px; font-size: .78rem; }
+    .vm-inf__field span { color: var(--accent); letter-spacing: .06em; text-transform: uppercase; font-size: .68rem; font-weight: 700; }
+    .vm-inf__field input, .vm-inf__filter {
+      font: inherit; font-size: .85rem; color: var(--foreground);
+      background: transparent; border: 1px solid var(--border-color);
+      border-radius: 4px; padding: 7px 10px; outline: none;
+    }
+    .vm-inf__field input:focus, .vm-inf__filter:focus { border-color: var(--accent); }
+    .vm-inf__cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+    .vm-inf__cols h2 { font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 10px; }
+    .vm-inf__filter { width: 100%; margin-bottom: 10px; }
+    .vm-inf__list { list-style: none; margin: 0; padding: 0; max-height: 26rem; overflow-y: auto; }
+    .vm-inf__row { margin: 0 0 2px; }
+    .vm-inf__row label { display: block; padding: 6px 8px; border-radius: 4px; cursor: pointer; }
+    .vm-inf__row label:hover { background: rgba(145, 65, 172, .12); }
+    .vm-inf__row input { margin-right: 8px; accent-color: var(--accent); }
+    .vm-inf__rowtitle { font-size: .85rem; }
+    .vm-inf__rowmeta { display: block; font-size: .68rem; opacity: .55; margin: 2px 0 0 24px; }
+    .vm-inf__sel { list-style: none; margin: 0; padding: 0; counter-reset: infsel; }
+    .vm-inf__sel li {
+      display: flex; align-items: center; gap: 8px;
+      border: 1px solid var(--border-color); border-left: 3px solid var(--accent);
+      border-radius: 4px; padding: 6px 10px; margin: 0 0 6px; font-size: .82rem;
+      counter-increment: infsel;
+    }
+    .vm-inf__sel li::before { content: counter(infsel, decimal-leading-zero); color: var(--accent); font-size: .72rem; }
+    .vm-inf__sel li .t { flex: 1; }
+    .vm-inf__sel li button {
+      font: inherit; font-size: .8rem; line-height: 1; cursor: pointer;
+      color: var(--foreground); background: transparent;
+      border: 1px solid var(--border-color); border-radius: 4px; padding: 3px 7px;
+    }
+    .vm-inf__sel li button:hover { border-color: var(--accent); color: var(--accent); }
+    .vm-inf__sel li button:disabled { opacity: .3; cursor: default; }
+    .vm-inf__hint { font-size: .74rem; opacity: .6; }
+    .vm-inf__actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    .vm-inf__actions button {
+      font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer;
+      border-radius: 4px; padding: 9px 16px;
+      color: var(--background); background: var(--accent); border: 1px solid var(--accent);
+    }
+    .vm-inf__actions button:disabled { opacity: .35; cursor: default; }
+    .vm-inf__actions #vm-inf-copy { color: var(--accent); background: transparent; }
+    @media (max-width: 684px) {
+      .vm-inf__panel, .vm-inf__cols { grid-template-columns: 1fr; }
+    }
+  </style>
+
+  {{ $builder := resources.Get "js/informes-builder.js" | js.Build | minify | fingerprint }}
+  <script src="{{ $builder.Permalink }}" defer></script>
+</article>
+{{ end }}

@@ -1,0 +1,44 @@
+{{- /*
+  Shell del informe PDF combinado (/informes/print.html?p=slug1,slug2&t=...).
+  El documento se ensambla client-side (js/informe-doc.js): fetchea el
+  print.html de cada post seleccionado, funde portada + índice maestro +
+  portadillas + contenido + referencias dedupeadas, y pagina con Paged.js
+  (autohospedado) para números de página reales en el índice.
+  Estilos: report.css (base print) + collection.css (colección/Paged.js).
+*/ -}}
+<!DOCTYPE html>
+<html lang="{{ .Site.Language.Lang }}" class="pf-print">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>{{ .Title | plainify }} — dust115 · skullfox archive</title>
+<link rel="stylesheet" href="{{ "vm/tokens/fonts.css" | absURL }}">
+{{- $order := slice "css/tokens/colors.css" "css/tokens/typography.css" "css/tokens/spacing.css" "css/print/report.css" "css/print/collection.css" -}}
+{{- $sheets := slice -}}
+{{- range $order }}{{ with resources.Get . }}{{ $sheets = $sheets | append . }}{{ end }}{{ end -}}
+{{- $bundle := $sheets | resources.Concat "css/pf-collection.css" | minify | fingerprint -}}
+<link rel="stylesheet" href="{{ $bundle.Permalink }}">
+</head>
+{{- $builderURL := (.OutputFormats.Get "HTML").RelPermalink -}}
+<body class="pf-doc pf-collection"
+      data-posts-base="{{ "posts/" | relURL }}"
+      data-builder="{{ $builderURL }}"
+      data-site="{{ .Site.BaseURL }}">
+
+  <div id="pf-status" class="pf-status" role="status">preparando el informe…</div>
+
+  <div id="pf-empty" class="pf-empty" hidden>
+    <p><strong>No hay piezas seleccionadas.</strong></p>
+    <p>Este documento se arma desde el constructor de informes:
+       elige los posts y el orden, y vuelve aquí con <code>?p=slug1,slug2,…</code>.</p>
+    <p><a href="{{ (.OutputFormats.Get "HTML").RelPermalink }}">→ ir al constructor</a></p>
+  </div>
+
+  <script>window.PagedConfig = { auto: false };</script>
+  <script src="{{ "vm/js/paged.polyfill.min.js" | relURL }}"></script>
+  {{ $doc := resources.Get "js/informe-doc.js" | js.Build | minify | fingerprint }}
+  <script src="{{ $doc.Permalink }}" defer></script>
+
+</body>
+</html>

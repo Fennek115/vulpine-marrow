@@ -1,0 +1,151 @@
+/* ============================================================
+   Vulpine Marrow — Print / informe combinado (collection.css)
+   Se concatena DESPUÉS de report.css, solo en la vista de
+   colección (/informes/print.html). Requiere Paged.js:
+   target-counter() para los números de página del índice y
+   string() para el running header. La página sigue CLARA.
+   ============================================================ */
+
+/* ---- running header: título de la parte actual ---- */
+@page {
+  @top-right {
+    content: string(pfPart, last);
+    font-family: 'Fira Code', monospace;
+    font-size: 7pt;
+    letter-spacing: .04em;
+    color: #8a8394;
+  }
+}
+@page cover { @top-right { content: ""; } }
+
+/* ============================================================
+   Estado de ensamblado (overlay, solo mientras se arma)
+   ============================================================ */
+.pf-status {
+  position: fixed; top: 14px; left: 14px; z-index: 60;
+  background: #fff; border: 1px solid var(--pf-line); border-radius: 8px;
+  padding: 8px 12px; font-size: 12px; color: var(--pf-muted);
+  box-shadow: 0 6px 24px rgba(36, 31, 49, .14);
+}
+.pf-empty {
+  max-width: 60ch; margin: 60px auto; padding: 20px 24px;
+  background: #fff; border: 1px solid var(--pf-line);
+  border-left: 3px solid var(--pf-accent); border-radius: 8px;
+  font-size: 10.5pt;
+}
+.pf-empty a { color: var(--pf-accent-2); }
+
+.pf-toolbar .pf-edit {
+  font-size: 12px; font-weight: 700; letter-spacing: .03em;
+  color: var(--pf-accent-2); text-decoration: none;
+  border: 1px solid var(--pf-line); border-radius: 6px; padding: 7px 12px;
+}
+.pf-toolbar .pf-edit:hover { border-color: var(--pf-accent); }
+
+/* ============================================================
+   Índice maestro (una entrada por pieza + sus H2/H3)
+   ============================================================ */
+/* el salto lo fuerza la portadilla de la parte 1, no el TOC
+   (evita páginas en blanco por doble break con Paged.js) */
+.pf-collection .pf-toc { break-after: auto; }
+
+.pf-mtoc__parts { list-style: none; margin: 0; padding: 0; }
+.pf-mtoc__parts > li { margin: 0 0 9px; break-inside: avoid; }
+
+.pf-mtoc a {
+  display: flex; align-items: baseline; gap: 8px;
+  border-bottom: 0; text-decoration: none;
+}
+.pf-mtoc a .pf-mtoc-t { color: var(--pf-ink); }
+.pf-mtoc a .pf-mtoc-l {
+  flex: 1 1 auto; min-width: 14px;
+  border-bottom: 1px dotted var(--pf-line);
+  transform: translateY(-3px);
+}
+/* número de página real (lo resuelve Paged.js) */
+.pf-mtoc a::after {
+  content: target-counter(attr(href), page);
+  color: var(--pf-muted); font-size: 8.5pt;
+}
+
+.pf-mtoc a.pf-mtoc__part .pf-mtoc-t {
+  font-weight: 800; font-size: 10pt; color: var(--pf-accent-2);
+}
+.pf-mtoc__sub { padding: 3px 0 0 16px; }
+.pf-mtoc__sub ul { list-style: none; margin: 0; padding: 0; }
+.pf-mtoc__sub ul ul { padding-left: 14px; }
+.pf-mtoc__sub a .pf-mtoc-t { color: var(--pf-muted); font-size: 9pt; }
+.pf-mtoc__sub li { margin: 0 0 2px; break-inside: avoid; }
+
+/* ============================================================
+   Portadilla de cada pieza
+   ============================================================ */
+.pf-part {
+  break-before: page;
+  padding-top: 10mm;
+  margin-bottom: 9mm;
+  border-bottom: 2px solid var(--pf-accent);
+  padding-bottom: 6mm;
+}
+.pf-part__kicker {
+  font-size: 8pt; font-weight: 800; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--pf-accent); margin-bottom: 8px;
+}
+.pf-part__title {
+  string-set: pfPart content(text);
+  margin: 0; font-size: 19pt; line-height: 1.18; font-weight: 700;
+  color: var(--pf-ink); text-wrap: balance;
+  break-after: avoid;
+}
+.pf-part__tagline { margin: 8px 0 0; color: var(--pf-muted); font-size: 10pt; max-width: 62ch; }
+.pf-part__meta {
+  margin-top: 10px; display: flex; gap: 16px; flex-wrap: wrap;
+  font-size: 8pt; color: var(--pf-faint);
+}
+.pf-part__meta span::before { content: "› "; color: var(--pf-accent); }
+
+/* ============================================================
+   Referencias consolidadas (al final del informe)
+   ============================================================ */
+.pf-refs { break-before: page; padding-top: 10mm; }
+.pf-refs h2 {
+  font-size: 13pt; font-weight: 700; color: var(--pf-ink);
+  padding-bottom: 5px; border-bottom: 1px solid var(--pf-line); margin: 0 0 10px;
+}
+.pf-refs h2::before { content: "▚ "; color: var(--pf-accent); font-size: .8em; }
+.pf-refs ol { margin: 0; padding-left: 22px; font-size: 8.6pt; }
+.pf-refs li { margin: 0 0 4px; color: var(--pf-muted); }
+.pf-refs a { color: var(--pf-accent-2); text-decoration: none; word-break: break-all; }
+
+/* ============================================================
+   Pantalla: Paged.js pinta sus propias hojas (.pagedjs_page);
+   anular la maqueta "hoja sobre lienzo" de report.css, que solo
+   aplica al print de post individual.
+   ============================================================ */
+@media screen {
+  body.pf-collection { background: #e9e6ee; padding: 0; }
+  body.pf-collection .pf-cover,
+  body.pf-collection .pf-toc,
+  body.pf-collection .pf-content {
+    width: auto; margin: 0; padding: 0; box-shadow: none;
+  }
+  body.pf-collection .pf-toc { min-height: 0; }
+  /* en el preview paginado rige "screen": usar la altura de impresión,
+     no los 297mm de la maqueta hoja-sobre-lienzo (desbordaría la página) */
+  body.pf-collection .pf-cover { min-height: calc(297mm - 34mm); }
+
+  .pagedjs_pages {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 8mm; padding: 26px 0 80px;
+  }
+  .pagedjs_page {
+    background: var(--pf-paper);
+    box-shadow: 0 2px 20px rgba(36, 31, 49, .12);
+  }
+}
+
+@media print {
+  .pf-status, .pf-toolbar { display: none !important; }
+  .pagedjs_pages { padding: 0; gap: 0; display: block; }
+  .pagedjs_page { box-shadow: none; }
+}

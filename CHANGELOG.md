@@ -2,6 +2,40 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.5.0] — 2026-07-07
+
+### Added
+- **Export PDF de posts (output format `print`)**: vista de impresión standalone
+  por post (`/posts/<slug>/print.html`, layout `_default/single.print.html`,
+  hoja `assets/css/print/report.css`). Página CLARA A4 con portada sobria,
+  índice único, pie corrido con marca + número de página (`@page` margin
+  boxes), y reglas anti-corte: tablas enteras con `<thead>` repetido,
+  `break-after: avoid` en títulos, `orphans/widows`. Botón «⎙ PDF» en el
+  single del blog. El sitio decide qué secciones lo emiten (cascade
+  `outputs`); mermaid se re-renderiza con paleta clara.
+- **Constructor de informes PDF combinados** (sección `informes`): página
+  `layouts/informes/list.html` para elegir posts y su orden (filtro, ↑/↓,
+  título/subtítulo), y vista `layouts/informes/list.print.html` que ensambla
+  el documento **client-side** desde el `print.html` de cada pieza
+  (`js/informe-doc.js`): portada maestra, índice maestro H2/H3 con números
+  de página reales, portadillas por pieza, IDs/anclas prefijados por slug,
+  enlaces entre piezas reescritos a anclas internas y sección «Referencias»
+  consolidada (dedupe por URL). La selección viaja en la URL
+  (`print.html?p=slug1,slug2&t=Título`), así cualquier combinación es un
+  enlace reproducible — no hay colecciones precocinadas.
+- **Paged.js 0.4.3 vendoreado** (MIT, `static/vm/js/paged.polyfill.min.js`):
+  pagina el informe combinado en el navegador; habilita `target-counter()`
+  (números de página del índice), `string-set` (running header con la parte
+  actual) y `counter(pages)`. Solo se carga en la vista de colección; el
+  print de post individual sigue sin dependencias. Hoja propia
+  `assets/css/print/collection.css`.
+
+### Fixed
+- **`single.print.html`: el contenido con wikilinks salía escapado.** El
+  partial `wikilinks.html` devuelve string cuando resuelve `[[ ]]`
+  (`replaceRE`), y la vista print no lo pasaba por `safeHTML`, así que todo
+  post con wikilinks imprimía su HTML como texto plano.
+
 ## [0.4.3] — 2026-07-04
 
 ### Fixed
