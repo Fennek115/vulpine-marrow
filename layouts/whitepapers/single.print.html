@@ -1,0 +1,85 @@
+{{- /*
+  Vista de impresión / export PDF de un WHITEPAPER curado
+  (/whitepapers/<slug>/print.html). Documento único, autoral, con su
+  portada, índice con números de página, mermaid rasterizado y pie A4.
+  Reutiliza el pipeline Paged.js del informe combinado, pero el contenido
+  ya viene de un solo markdown (no se ensamblan posts).
+  Estilos: report.css (base print) + whitepaper.css. Lógica: whitepaper-doc.js.
+*/ -}}
+<!DOCTYPE html>
+<html lang="{{ .Site.Language.Lang }}" class="pf-print">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>{{ .Title | plainify }} — dust115 · skullfox archive</title>
+<link rel="stylesheet" href="{{ "vm/tokens/fonts.css" | relURL }}">
+{{- $order := slice "css/tokens/colors.css" "css/tokens/typography.css" "css/tokens/spacing.css" "css/print/report.css" "css/print/whitepaper.css" -}}
+{{- $sheets := slice -}}
+{{- range $order }}{{ with resources.Get . }}{{ $sheets = $sheets | append . }}{{ end }}{{ end -}}
+{{- $bundle := $sheets | resources.Concat "css/pf-whitepaper.css" | minify | fingerprint -}}
+{{- /* RelPermalink (no Permalink): en local/hugo server los assets se sirven del
+       mismo host que la página; con la URL absoluta apuntarían a producción y el
+       build headless los bloquea por cross-origin cuando aún no están desplegados */ -}}
+<link rel="stylesheet" href="{{ $bundle.RelPermalink }}">
+</head>
+<body class="pf-doc">
+
+  <div id="pf-status" class="pf-status" role="status">preparando el whitepaper…</div>
+
+  {{- /* ---------- Portada ---------- */ -}}
+  <header class="pf-cover">
+    <div class="pf-cover-top">
+      <span class="pf-mark">✦</span>
+      <div>
+        <div class="pf-wm">dust115 · skullfox archive</div>
+        <div class="pf-wm-sub">threat intelligence · blue team · detection engineering</div>
+      </div>
+    </div>
+
+    <div class="pf-cover-mid">
+      <div class="pf-kicker">{{ .Params.kicker | default "whitepaper · síntesis defensiva" }}</div>
+      <h1 class="pf-title">{{ .Title | markdownify }}</h1>
+      {{- with .Params.subtitle | default .Summary }}<p class="pf-tagline">{{ . | plainify }}</p>{{ end }}
+    </div>
+
+    {{- /* dominio canónico fijo: `hugo server` reescribe .Site.BaseURL a
+           localhost y el PDF se genera contra el server → hornearía un enlace
+           local. El PDF es un artefacto que se comparte, así que apunta al sitio. */ -}}
+    {{- $site := "https://fennek.org" -}}
+    <dl class="pf-meta">
+      <dt>autor</dt><dd><a href="{{ $site }}/portafolio/">{{ replaceRE "https?://" "" $site }}</a></dd>
+      {{- if .Date }}<dt>fecha</dt><dd>{{ .Date.Format "2006-01-02" }}{{ with .Params.verified }} (datos verificados al {{ . }}){{ end }}</dd>{{ end }}
+      <dt>clasificación</dt><dd>TLP:CLEAR — distribución libre</dd>
+      {{- with .Params.scope }}<dt>alcance</dt><dd>{{ . }}</dd>{{ end }}
+      <dt>serie completa</dt><dd>los análisis originales, con sus reglas y actualizaciones, en <a href="{{ $site }}">{{ replaceRE "https?://" "" $site }}</a></dd>
+    </dl>
+
+    <div class="pf-cover-foot">
+      <span>documento independiente · condensa la serie «{{ .Title | plainify }}»</span>
+      <span>una huella en la piedra digital</span>
+    </div>
+  </header>
+
+  {{- /* ---------- Índice con números de página ---------- */ -}}
+  {{ if gt (len .TableOfContents) 60 }}
+  <nav class="pf-toc pf-toc--wp">
+    <h2>{{ .Params.TocTitle | default "Contenido" }}</h2>
+    {{ .TableOfContents }}
+  </nav>
+  {{ end }}
+
+  {{- /* ---------- Contenido ---------- */ -}}
+  <main class="pf-content post-content">
+    {{ partial "wikilinks.html" . | safeHTML }}
+  </main>
+
+  {{- /* Paged.js en espera; whitepaper-doc.js dispara mermaid→img, autolink de
+         CVE, números de página y la paginación. */ -}}
+  <script>window.PagedConfig = { auto: false };</script>
+  <script src="{{ "vm/js/paged.polyfill.min.js" | relURL }}"></script>
+  {{ $doc := resources.Get "js/whitepaper-doc.js" | js.Build | minify | fingerprint }}
+  <script src="{{ $doc.RelPermalink }}" defer></script>
+
+</body>
+</html>

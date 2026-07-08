@@ -1,0 +1,40 @@
+{{ define "main" }}
+{{- /*
+  Landing HTML de un whitepaper. Documento aparte del stream del blog:
+  cabecera propia con botón de descarga del PDF pre-generado
+  (/pdf/<slug>.pdf) y enlace a la vista imprimible. El cuerpo se renderiza
+  igual que un post (wikilinks + anclas + mermaid del tema).
+*/ -}}
+<article class="post post--single">
+  <div class="post-series">⟐ {{ .Params.kicker | default "whitepaper" }}</div>
+
+  <h1 class="post-title">{{ .Title | markdownify }}</h1>
+  {{- with .Params.subtitle | default .Summary }}<p class="post-subtitle">{{ . | plainify }}</p>{{ end }}
+
+  <div class="post-meta">
+    {{- if .Date }}<time class="post-date">{{ partial "post-date" . }}</time> · {{ end -}}
+    <span>{{ .ReadingTime }} {{ $.Site.Params.minuteReadingTime | default "min de lectura" }}</span>
+    {{- $pdf := printf "/pdf/%s.pdf" (path.Base .RelPermalink) -}}
+    {{- if fileExists (printf "static%s" $pdf) }} · <a class="post-pdf-link" href="{{ $pdf | relURL }}">⬇ descargar PDF</a>{{ end -}}
+    {{- with .OutputFormats.Get "print" }} · <a class="post-pdf-link" href="{{ .RelPermalink }}">⎙ versión imprimible</a>{{ end -}}
+  </div>
+
+  <hr>
+
+  {{ if (.Params.Toc | default true) }}
+    <div class="table-of-contents">
+      <h2>{{ .Params.TocTitle | default "Contenido" }}</h2>
+      {{ .TableOfContents }}
+    </div>
+  {{ end }}
+
+  <div class="post-content">
+    {{- $body := partial "wikilinks.html" . -}}
+    {{- with $body -}}
+      <div>
+        {{ . | replaceRE "(<h[1-9] id=\"([^\"]+)\".+)(</h[1-9]+>)" `${1}<a href="#${2}" class="hanchor" ariaLabel="Anchor">#</a> ${3}` | safeHTML }}
+      </div>
+    {{- end -}}
+  </div>
+</article>
+{{ end }}

@@ -1,0 +1,160 @@
+/* ============================================================
+   Vulpine Marrow — Print / whitepaper curado (whitepaper.css)
+   Se concatena DESPUÉS de report.css, solo en la vista print de
+   la sección /whitepapers/ (layouts/whitepapers/single.print.html).
+   Un whitepaper es un documento ÚNICO y curado (no la colección
+   ad-hoc de /informes/): hereda la portada, la tipografía y las
+   reglas anti-corte de report.css, y añade lo propio del formato:
+   índice con números de página (Paged.js), encabezado corrido por
+   sección, diagramas mermaid rasterizados, y badges/notas de autor.
+   Requiere Paged.js (igual que collection.css). Página CLARA.
+   ============================================================ */
+
+/* size explícito en la página `cover` (report.css la nombra): sin él Paged.js
+   le asigna letter y quedan dos @page con tamaños distintos → hoja en blanco
+   en Gecko. La portada va sin encabezado corrido. */
+@page cover { size: A4; @top-right { content: ""; } }
+
+/* encabezado corrido (arriba-derecha): título de la sección actual.
+   string-set en cada h2; content(text) ignora el ▚ del ::before. */
+@page {
+  @top-right {
+    content: string(wpSec, first-except);
+    font-family: 'Fira Code', monospace;
+    font-size: 7pt;
+    letter-spacing: .04em;
+    color: #8a8394;
+  }
+}
+.pf-content h2 { string-set: wpSec content(text); }
+
+/* cada sección principal (## N ·) abre en página nueva → nada de títulos
+   varados al pie con su tabla derramada a la hoja siguiente. La primera (§1)
+   NO fuerza salto: comparte la primera hoja de contenido con la banda TLP que
+   la precede (si no, la banda quedaría sola tras el índice). Solo h2 salta;
+   los h3 (subsecciones) fluyen. */
+.pf-content h2 { break-before: page; }
+.pf-content > .vm-tlp + h2,
+.pf-content > h2:first-child { break-before: auto; }
+
+/* Paged.js propaga el nombre de página `cover` hacia adelante; se reancla al
+   @page por defecto todo lo que viene tras la portada (índice y contenido). */
+.pf-toc, .pf-content { page: auto; }
+
+/* ============================================================
+   Índice con líder de puntos + número de página (Paged.js)
+   Reestructurado en JS (whitepaper-doc.js): cada <a> pasa a
+   [texto][líder][nº]. El nº lo llena fillPageNumbers() tras paginar.
+   ============================================================ */
+.pf-toc--wp nav ul { list-style: none; margin: 0; padding: 0; }
+.pf-toc--wp nav > ul > li { margin: 0 0 6px; break-inside: avoid; }
+.pf-toc--wp nav ul ul { padding-left: 16px; margin: 4px 0 0; }
+.pf-toc--wp nav ul ul li { margin: 0 0 2px; break-inside: avoid; }
+
+.pf-toc--wp a {
+  display: flex; align-items: baseline; gap: 8px;
+  border-bottom: 0; text-decoration: none; color: var(--pf-ink);
+}
+.pf-toc--wp > nav > ul > li > a .wp-t {
+  font-weight: 800; font-size: 10pt; color: var(--pf-accent-2);
+}
+.pf-toc--wp nav ul ul a .wp-t { color: var(--pf-muted); font-size: 9pt; }
+.pf-toc--wp .wp-l {
+  flex: 1 1 auto; min-width: 14px;
+  border-bottom: 1px dotted var(--pf-line);
+  transform: translateY(-3px);
+}
+.pf-toc--wp .wp-p {
+  min-width: 2.4em; text-align: right;
+  color: var(--pf-muted); font-size: 8.5pt; font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   Párrafo de entradilla (resumen ejecutivo)
+   ============================================================ */
+.pf-content .lead { font-size: 11pt; color: var(--pf-muted); }
+
+/* ============================================================
+   Diagramas mermaid → <img> data-URI (los rasteriza whitepaper-doc.js;
+   Paged.js corrompe el SVG inline, ver informe-doc.js). Altura acotada
+   para que nunca excedan una página.
+   ============================================================ */
+.pf-content .pf-mermaid-img {
+  display: block; margin: 14px auto;
+  max-width: 100%; max-height: 215mm; width: auto; height: auto;
+  break-inside: avoid;
+}
+
+/* ============================================================
+   Tablas largas (p. ej. el mapa MITRE de §9, el glosario de §14):
+   whitepaper-doc.js les pone .pf-table--long cuando tienen muchas
+   filas. report.css hace toda tabla break-inside:avoid; en una
+   tabla MÁS ALTA que la caja de página eso obliga a Paged.js a
+   empujarla entera a la hoja siguiente, dejando su título huérfano
+   en la hoja previa (y a veces una fila viuda al final). Aquí se
+   permite el corte ENTRE filas: la cabecera se repite en cada hoja
+   (thead display:table-header-group) y ninguna fila se parte
+   (tr break-inside:avoid) — ambas reglas vienen de report.css. Las
+   tablas cortas conservan su comportamiento atómico.
+   ============================================================ */
+.pf-content table.pf-table--long { break-inside: auto; }
+
+/* ============================================================
+   Nota del autor / alcance (caja destacada, tono sobrio)
+   ============================================================ */
+.pf-content .callout-note {
+  border: 1px solid var(--pf-hair); border-left: 3px solid var(--pf-accent-2);
+  border-radius: 5px; background: var(--pf-panel);
+  padding: 10px 14px; margin: 12px 0; font-size: 9.3pt; break-inside: avoid;
+}
+
+/* la banda de color del TLP no aporta en impresión monocroma de marca */
+.pf-content .vm-tlp__band { display: none; }
+.pf-content .vm-tlp__note { margin-left: 6px; }
+
+/* ============================================================
+   Badges de estado (parcheado / sin parche / KEV) — contorno
+   ============================================================ */
+.pf-content .vm-badge {
+  display: inline-block; font-size: 7.4pt; font-weight: 800;
+  letter-spacing: .04em; text-transform: uppercase;
+  padding: 1px 6px; border-radius: 3px; vertical-align: middle;
+  border: 1px solid currentColor;
+}
+.pf-content .vm-badge--green  { color: #00803f; }
+.pf-content .vm-badge--red    { color: #d4204f; }
+.pf-content .vm-badge--orange { color: #c25c00; }
+.pf-content .vm-badge--yellow { color: #b08300; }
+.pf-content .vm-badge--teal   { color: #008a72; }
+.pf-content .vm-badge--purple,
+.pf-content .vm-badge--accent { color: var(--pf-accent-2); }
+
+/* ============================================================
+   Barra de acción del visor (clase propia pf-cbar; Paged.js promueve
+   las @media print a "siempre", así que se oculta al imprimir por JS,
+   no por CSS — igual que en collection.css).
+   ============================================================ */
+.pf-cbar {
+  position: fixed; top: 14px; right: 14px; z-index: 50;
+  display: flex; gap: 10px; align-items: center;
+  background: #fff; border: 1px solid var(--pf-line);
+  border-radius: 8px; padding: 8px 10px;
+  box-shadow: 0 6px 24px rgba(36, 31, 49, .14);
+  font-size: 12px;
+}
+.pf-cbar button {
+  font-family: 'Fira Code', monospace; font-size: 12px; font-weight: 700;
+  letter-spacing: .03em; cursor: pointer;
+  color: #fff; background: var(--pf-accent);
+  border: 1px solid var(--pf-accent); border-radius: 6px; padding: 7px 14px;
+}
+.pf-cbar button:hover { background: var(--pf-accent-2); }
+.pf-cbar .pf-cbar-hint { color: var(--pf-faint); }
+
+/* overlay de estado mientras se arma/pagina el documento */
+.pf-status {
+  position: fixed; top: 14px; left: 14px; z-index: 60;
+  background: #fff; border: 1px solid var(--pf-line); border-radius: 8px;
+  padding: 8px 12px; font-size: 12px; color: var(--pf-muted);
+  box-shadow: 0 6px 24px rgba(36, 31, 49, .14);
+}
