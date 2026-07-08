@@ -16,7 +16,10 @@
     color: #8a8394;
   }
 }
-@page cover { @top-right { content: ""; } }
+/* size explícito en la página nombrada `cover`: sin él, Paged.js le asigna su
+   tamaño por defecto (letter) y quedan DOS @page con size distinto (letter + a4)
+   en el print real → Gecko puede meter una hoja en blanco al inicio. */
+@page cover { size: A4; @top-right { content: ""; } }
 
 /* ============================================================
    Estado de ensamblado (overlay, solo mientras se arma)
@@ -35,19 +38,47 @@
 }
 .pf-empty a { color: var(--pf-accent-2); }
 
-.pf-toolbar .pf-edit {
+/* ---- barra de acción del visor (clase propia, ver informe-doc.js) ----
+   No usa @media: se pinta siempre en pantalla y se oculta al imprimir vía
+   beforeprint/afterprint (JS), porque Paged.js promueve las @media print a
+   "siempre" y ocultaría la barra también en el visor. */
+.pf-cbar {
+  position: fixed; top: 14px; right: 14px; z-index: 50;
+  display: flex; gap: 10px; align-items: center;
+  background: #fff; border: 1px solid var(--pf-line);
+  border-radius: 8px; padding: 8px 10px;
+  box-shadow: 0 6px 24px rgba(36, 31, 49, .14);
+  font-size: 12px;
+}
+.pf-cbar button {
+  font-family: 'Fira Code', monospace; font-size: 12px; font-weight: 700;
+  letter-spacing: .03em; cursor: pointer;
+  color: #fff; background: var(--pf-accent);
+  border: 1px solid var(--pf-accent); border-radius: 6px; padding: 7px 14px;
+}
+.pf-cbar button:hover { background: var(--pf-accent-2); }
+.pf-cbar .pf-cbar-edit {
   font-size: 12px; font-weight: 700; letter-spacing: .03em;
   color: var(--pf-accent-2); text-decoration: none;
   border: 1px solid var(--pf-line); border-radius: 6px; padding: 7px 12px;
 }
-.pf-toolbar .pf-edit:hover { border-color: var(--pf-accent); }
+.pf-cbar .pf-cbar-edit:hover { border-color: var(--pf-accent); }
+.pf-cbar .pf-cbar-hint { color: var(--pf-faint); }
 
-/* ============================================================
-   Índice maestro (una entrada por pieza + sus H2/H3)
-   ============================================================ */
 /* el salto lo fuerza la portadilla de la parte 1, no el TOC
    (evita páginas en blanco por doble break con Paged.js) */
 .pf-collection .pf-toc { break-after: auto; }
+
+/* ============================================================
+   La portada usa `page: cover` (report.css) para no llevar pie.
+   Paged.js PROPAGA el nombre de página hacia adelante: sin reancla,
+   `cover` se derramaba a ~11 páginas (índice, portadillas, contenido)
+   → esas hojas quedaban sin pie y, en Firefox, aparecía una hoja en
+   BLANCO al inicio del PDF. Se reancla al @page por defecto todo lo
+   que viene después de la portada. */
+.pf-collection .pf-mtoc,
+.pf-collection .pf-part,
+.pf-collection .pf-refs { page: auto; }
 
 .pf-mtoc__parts { list-style: none; margin: 0; padding: 0; }
 .pf-mtoc__parts > li { margin: 0 0 9px; break-inside: avoid; }
@@ -62,10 +93,10 @@
   border-bottom: 1px dotted var(--pf-line);
   transform: translateY(-3px);
 }
-/* número de página real (lo resuelve Paged.js) */
-.pf-mtoc a::after {
-  content: target-counter(attr(href), page);
-  color: var(--pf-muted); font-size: 8.5pt;
+/* nº de página (lo llena fillPageNumbers() tras paginar; ver informe-doc.js) */
+.pf-mtoc .pf-mtoc-p {
+  min-width: 2.4em; text-align: right;
+  color: var(--pf-muted); font-size: 8.5pt; font-variant-numeric: tabular-nums;
 }
 
 .pf-mtoc a.pf-mtoc__part .pf-mtoc-t {
@@ -81,11 +112,23 @@
    Portadilla de cada pieza
    ============================================================ */
 .pf-part {
-  break-before: page;
-  padding-top: 10mm;
-  margin-bottom: 9mm;
-  border-bottom: 2px solid var(--pf-accent);
-  padding-bottom: 6mm;
+  break-before: page;         /* cada pieza abre página */
+  break-after: avoid;         /* …y su contenido arranca en ESA misma página */
+  padding-top: 6mm;
+  margin-bottom: 6mm;
+  padding-bottom: 4mm;
+  border-bottom: 1px solid var(--pf-hair);   /* separador fino, no una "cortada" */
+}
+/* que el bloque de portadilla no se parta ni deje el título colgando */
+.pf-part__kicker, .pf-part__title, .pf-part__tagline, .pf-part__meta { break-inside: avoid; }
+
+/* diagramas mermaid: van como <img> data-URI (ver informe-doc.js). Se acota la
+   altura para que nunca excedan una página — si no, Paged.js entra en "Layout
+   repeated" y trunca el flujo. */
+.pf-content .pf-mermaid-img {
+  display: block; margin: 14px auto;
+  max-width: 100%; max-height: 215mm; width: auto; height: auto;
+  break-inside: avoid;
 }
 .pf-part__kicker {
   font-size: 8pt; font-weight: 800; letter-spacing: .18em;
@@ -118,34 +161,12 @@
 .pf-refs a { color: var(--pf-accent-2); text-decoration: none; word-break: break-all; }
 
 /* ============================================================
-   Pantalla: Paged.js pinta sus propias hojas (.pagedjs_page);
-   anular la maqueta "hoja sobre lienzo" de report.css, que solo
-   aplica al print de post individual.
-   ============================================================ */
-@media screen {
-  body.pf-collection { background: #e9e6ee; padding: 0; }
-  body.pf-collection .pf-cover,
-  body.pf-collection .pf-toc,
-  body.pf-collection .pf-content {
-    width: auto; margin: 0; padding: 0; box-shadow: none;
-  }
-  body.pf-collection .pf-toc { min-height: 0; }
-  /* en el preview paginado rige "screen": usar la altura de impresión,
-     no los 297mm de la maqueta hoja-sobre-lienzo (desbordaría la página) */
-  body.pf-collection .pf-cover { min-height: calc(297mm - 34mm); }
-
-  .pagedjs_pages {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 8mm; padding: 26px 0 80px;
-  }
-  .pagedjs_page {
-    background: var(--pf-paper);
-    box-shadow: 0 2px 20px rgba(36, 31, 49, .12);
-  }
-}
-
-@media print {
-  .pf-status, .pf-toolbar { display: none !important; }
-  .pagedjs_pages { padding: 0; gap: 0; display: block; }
-  .pagedjs_page { box-shadow: none; }
-}
+   NOTA sobre el visor (pantalla) vs. el print real:
+   Paged.js ELIMINA las reglas `@media screen` de las hojas del autor
+   y PROMUEVE las `@media print` a "siempre" (para previsualizar el print
+   en pantalla). Por eso aquí NO se usan medias:
+     - el centrado de hojas del visor se aplica como estilo inline desde
+       informe-doc.js (stylePreview()), inmune a esa promoción;
+     - la barra de acción usa la clase `pf-cbar` (arriba) y se oculta al
+       imprimir por beforeprint/afterprint (JS), no por CSS.
+   El `.pagedjs_page` toma su fondo/tamaño del runtime de Paged.js. */

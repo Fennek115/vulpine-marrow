@@ -23,8 +23,7 @@
 {{- $builderURL := (.OutputFormats.Get "HTML").RelPermalink -}}
 <body class="pf-doc pf-collection"
       data-posts-base="{{ "posts/" | relURL }}"
-      data-builder="{{ $builderURL }}"
-      data-site="{{ .Site.BaseURL }}">
+      data-builder="{{ $builderURL }}">
 
   <div id="pf-status" class="pf-status" role="status">preparando el informe…</div>
 

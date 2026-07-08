@@ -48,7 +48,7 @@
   }
 }
 /* la portada va sin pie */
-@page cover { @bottom-left { content: ""; } @bottom-right { content: ""; } }
+@page cover { size: A4; @bottom-left { content: ""; } @bottom-right { content: ""; } }
 
 * { box-sizing: border-box; }
 
@@ -220,13 +220,20 @@
   vertical-align: top; color: var(--pf-ink);
 }
 
+/* colchón título+contenido (lo arma print-keep.js, en las DOS vistas de print):
+   el grupo no se parte, así una sección nunca arranca sola al pie de la hoja */
+.pf-keep { break-inside: avoid; }
+
 .pf-content blockquote {
   margin: 0 0 10px; padding: 4px 0 4px 14px;
   border-left: 3px solid var(--pf-line); color: var(--pf-muted);
   font-style: italic; break-inside: avoid;
 }
 
-.pf-content img, .pf-content svg { max-width: 100%; height: auto; }
+/* max-height: una imagen nunca puede exceder la hoja — la figura entera (con
+   epígrafe) lleva break-inside:avoid, y un bloque inquebrable más alto que la
+   página deja hojas en blanco (en Paged.js además dispara "Layout repeated") */
+.pf-content img, .pf-content svg { max-width: 100%; max-height: 200mm; width: auto; height: auto; }
 .pf-content figure, .pf-content .vm-figure { margin: 12px 0; break-inside: avoid; text-align: center; }
 .pf-content .vm-figure__cap { font-size: 8pt; color: var(--pf-muted); margin-top: 5px; }
 .pf-content .vm-figure__credit { font-size: 7pt; color: var(--pf-faint); }

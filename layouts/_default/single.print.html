@@ -79,6 +79,7 @@
     document.querySelectorAll('pre.mermaid').forEach(function(el){ el.dataset.vmSrc = el.textContent; });
     mermaid.initialize({
       startOnLoad: false, theme: 'base', securityLevel: 'loose',
+      htmlLabels: false, flowchart: { htmlLabels: false },
       themeVariables: {
         darkMode: false, background: '#ffffff',
         primaryColor: '#f3ecfa', primaryTextColor: '#241f31', primaryBorderColor: '#9141ac',
@@ -89,6 +90,11 @@
     mermaid.run({ querySelector: 'pre.mermaid' });
   </script>
   {{ end }}
+
+  {{- /* formato inteligente: título nunca varado al pie (mismo keeper que el
+         informe combinado; ver assets/js/print-single.js) */ -}}
+  {{ $keep := resources.Get "js/print-single.js" | js.Build | minify | fingerprint }}
+  <script src="{{ $keep.Permalink }}" defer></script>
 
 </body>
 </html>

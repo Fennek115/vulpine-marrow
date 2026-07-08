@@ -20,17 +20,112 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/).
   (`js/informe-doc.js`): portada maestra, índice maestro H2/H3 con números
   de página reales, portadillas por pieza, IDs/anclas prefijados por slug,
   enlaces entre piezas reescritos a anclas internas y sección «Referencias»
-  consolidada (dedupe por URL). La selección viaja en la URL
+  consolidada (dedupe por URL). La portada lista los tags combinados de todas
+  las piezas (dedupe, sin el tag interno `proyecto`) y cada portadilla los tags
+  de su post — no se imprime ninguna URL. La selección viaja en la URL
   (`print.html?p=slug1,slug2&t=Título`), así cualquier combinación es un
-  enlace reproducible — no hay colecciones precocinadas.
+  enlace reproducible — no hay colecciones precocinadas. El botón «⎙ PDF» del
+  post (junto a los tags) es el **único** acceso a la exportación: enlaza al
+  constructor precargado con ese post (`/informes/?p=<slug>&t=<título>`), sin
+  una vía de PDF paralela.
 - **Paged.js 0.4.3 vendoreado** (MIT, `static/vm/js/paged.polyfill.min.js`):
-  pagina el informe combinado en el navegador; habilita `target-counter()`
-  (números de página del índice), `string-set` (running header con la parte
-  actual) y `counter(pages)`. Solo se carga en la vista de colección; el
+  pagina el informe combinado en el navegador; habilita `string-set` (running
+  header con la parte actual) y la maqueta multipágina. Los números de página
+  del índice se calculan en JS tras paginar (leyendo el `data-page-number` de
+  la `.pagedjs_page` donde cae cada ancla) porque `target-counter()` de CSS
+  resolvía a 0 en esta versión. Solo se carga en la vista de colección; el
   print de post individual sigue sin dependencias. Hoja propia
   `assets/css/print/collection.css`.
+- **Saltos de página "inteligentes" (las DOS vistas de print)**: antes una
+  sección podía arrancar al pie de la hoja (título + 1–2 líneas y corte, o el
+  título directamente varado solo). Con las alturas ya reales,
+  `keepHeadingsWithContent()` (módulo compartido `assets/js/print-keep.js`)
+  envuelve cada título (h2/h3/h4) junto a un colchón de contenido siguiente
+  (~200px, hasta el próximo título, con tope de ~340px) en un `.pf-keep {
+  break-inside: avoid }` (regla en report.css): si el grupo no entra al pie,
+  baja entero → la sección arranca limpia. Los `<p>` vacíos (residuo de
+  shortcodes en Markdown) tienen altura 0 y NO cuentan como colchón. Si lo que
+  sigue al título es UN bloque grande (figura/tabla/código), también se atan —
+  pero solo si el grupo cabe entero en una hoja (~920px): ese límite es lo que
+  evita la hoja en blanco (grupo inquebrable > página); si no cabe, el bloque
+  pagina solo (las tablas repiten cabecera). Lo usan el informe combinado
+  (`informe-doc.js`, antes de Paged.js) y el print de post individual
+  (`js/print-single.js`, nuevo: espera mermaid + fuentes + imágenes y envuelve
+  para la impresión nativa, donde Gecko ignora `break-after: avoid`).
+
+- **Señal `data-pf-ready` en `<html>`** al terminar de preparar cada vista de
+  print (keeper aplicado; en el informe, Paged.js ya paginado): la esperan los
+  scripts headless que pre-generan PDFs (p. ej. `scripts/build-pdf.mjs` del
+  sitio) para capturar en el momento correcto.
 
 ### Fixed
+- **Informe combinado: imágenes `loading="lazy"` rompían la paginación (hojas
+  en blanco intercaladas / ensamblado colgado).** El print de cada post trae
+  las imágenes con `loading="lazy"`; en el informe eso significaba que las que
+  quedaban bajo el pliegue no cargaban antes de `preview()`: Paged.js paginaba
+  con alturas falsas y, cuando las imágenes por fin llegaban, refloweaban
+  contenido dentro de hojas ya cortadas (huecos y páginas en blanco a mitad
+  del documento). Además el `await img.decode()` podía quedar pendiente para
+  siempre (colgado en «cargando fuentes e imágenes…»). Fix en `informe-doc.js`:
+  forzar `loading="eager"` en todas las imágenes de cada pieza antes de
+  esperar su `decode()`.
+- **Print: una imagen más alta que la hoja dejaba hojas en blanco.** Las
+  imágenes de contenido solo tenían `max-width`; un retrato grande excedía el
+  alto de página y, con `break-inside: avoid` en la figura, Paged.js entraba
+  en «Layout repeated» (y la impresión nativa recortaba). Ahora
+  `.pf-content img/svg` llevan `max-height: 200mm` (report.css), preservando
+  proporción.
+- **Informe combinado en Firefox: botón «Exportar PDF» invisible y hojas
+  pegadas a la izquierda en el visor.** Paged.js, para previsualizar el print
+  en pantalla, **elimina las reglas `@media screen` y promueve las `@media
+  print` a “siempre”**. Eso hacía que `@media print { .pf-toolbar {
+  display:none } }` ocultara la barra también en el visor (no se podía tocar
+  el botón) y que el centrado de hojas (que vivía en `@media screen`)
+  desapareciera (las páginas quedaban a la izquierda). Como tras Paged.js no
+  hay forma de apuntar «solo pantalla» por CSS, ambos se resuelven por JS
+  (`informe-doc.js`): la barra usa clase propia `pf-cbar` con anclaje inline
+  (`position: fixed`, que Paged.js también quita de las hojas) y se oculta al
+  imprimir vía `beforeprint`/`afterprint`; el centrado del visor se aplica como
+  estilo inline (`margin: 0 auto` en cada `.pagedjs_page`, inerte al imprimir
+  porque ahí el ancho de la hoja == el del contenedor).
+- **Informe combinado: el centrado del visor contaminaba la impresión (posible
+  causa de la hoja en blanco en Firefox).** La versión previa centraba con
+  `display:flex; gap:8mm` sobre `.pagedjs_pages`, creyendo que Paged.js forzaba
+  `display:block!important` al imprimir — pero Paged.js 0.4.3 **no** tiene esa
+  regla, así que el `gap:8mm` entre 35 hojas A4 entraba al PDF y Gecko lo
+  fragmentaba mal. Ahora el centrado es `margin:0 auto` (inerte al imprimir) y,
+  por las dudas, `beforeprint` quita TODOS los estilos de visor y `afterprint`
+  los repone → el PDF es exactamente la salida de Paged.js.
+- **Informe combinado: `size: A4` explícito en la página nombrada `cover`.**
+  Sin él, Paged.js le asignaba su tamaño por defecto (letter) y quedaban dos
+  `@page` con size distinto (letter + a4) en el print real — ambigüedad que
+  Gecko puede resolver metiendo una hoja en blanco.
+- **Informe combinado: hoja en BLANCO al inicio del PDF (Firefox) y páginas
+  sin pie.** La portada usa `page: cover` para no llevar pie corrido, pero
+  Paged.js **propaga el nombre de página hacia adelante**: sin reancla, `cover`
+  se derramaba a ~11 páginas (índice, portadillas, contenido), que quedaban
+  sin pie y, en Firefox, provocaban una hoja en blanco al comienzo. Fix:
+  reanclar al `@page` por defecto todo lo posterior a la portada
+  (`.pf-mtoc, .pf-part, .pf-refs { page: auto }`) — la portada leak baja de 11
+  a 1 página.
+- **Informe combinado: mermaid quedaba en blanco y truncaba el documento.**
+  Verificado con Chromium headless: Paged.js corrompe los `<svg>` inline al
+  clonarlos (pierde los `<text>`, infla la altura ~1148px); ese SVG vacío e
+  inquebrable disparaba `"Layout repeated"` y **cortaba el flujo** (9 páginas
+  en vez de 35, con hojas en blanco al final y números de índice sin resolver).
+  Fix: tras `mermaid.run`, cada diagrama se serializa a un `<img>` data-URI —
+  átomo que Paged.js clona intacto — con la altura acotada (`max-height`) para
+  que nunca exceda una página. En print de post individual (impresión nativa
+  del navegador, sin Paged.js) el SVG inline se conserva, con
+  `htmlLabels: false` para etiquetas SVG en vez de `<foreignObject>`.
+- **Informe combinado: los números del índice salían «0» / faltaban.**
+  `target-counter()` de CSS resolvía a 0 en Paged.js 0.4.3; ahora se calculan
+  en JS tras paginar. (Con el flujo ya completo, los 60 renglones resuelven.)
+- **Informe combinado: portadillas ya no dejan el título colgado.** La
+  portadilla de cada pieza era un bloque pesado (borde grueso + márgenes) que
+  stranded un par de líneas de contenido antes del salto; ahora es un
+  separador fino con `break-after: avoid`, así el contenido arranca en la
+  misma página que su título y fluye continuo.
 - **`single.print.html`: el contenido con wikilinks salía escapado.** El
   partial `wikilinks.html` devuelve string cuando resuelve `[[ ]]`
   (`replaceRE`), y la vista print no lo pasaba por `safeHTML`, así que todo

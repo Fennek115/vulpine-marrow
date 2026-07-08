@@ -13,6 +13,8 @@
    Al final renderiza mermaid (si hay diagramas) y recién entonces pagina
    con Paged.js (window.PagedConfig.auto=false lo mantiene a la espera). */
 
+import { keepHeadingsWithContent } from './print-keep.js';
+
 (function () {
   'use strict';
 
@@ -85,6 +87,10 @@
       return img.decode ? img.decode().catch(function () {}) : Promise.resolve();
     }));
 
+    /* con las alturas ya reales (fuentes+imágenes), atar cada título a un
+       colchón de contenido para que ninguna sección arranque al pie */
+    parts.forEach(function (part) { keepHeadingsWithContent(part.content); });
+
     say('paginando (Paged.js)…');
     statusEl.remove();
     /* nada ajeno al informe debe entrar a la paginación */
@@ -93,7 +99,68 @@
     if (empty) empty.remove();
 
     await window.PagedPolyfill.preview();
+    fillPageNumbers();
+    stylePreview();
     addToolbar();
+    /* señal para scripts/build-pdf.mjs (y cualquier headless): documento listo */
+    document.documentElement.dataset.pfReady = '1';
+  }
+
+  /* Paged.js elimina las reglas @media screen y promueve las @media print a
+     "siempre" (para previsualizar el print en pantalla). Eso deja el visor sin
+     el centrado de hojas → las páginas se pegan a la izquierda. No hay forma de
+     apuntar "solo pantalla" por CSS tras Paged, así que el centrado va inline.
+
+     OJO (bug de la hoja en blanco en Firefox): Paged.js 0.4.3 NO tiene ninguna
+     `@media print { .pagedjs_pages { display:block !important } }`, así que
+     cualquier estilo de visor sobre `.pagedjs_pages` (flex, gap, …) SÍ entra a
+     la impresión y Gecko lo fragmenta mal (hojas en blanco). Por eso:
+       1) el centrado se hace con `margin: 0 auto` en cada `.pagedjs_page` — es
+          inerte al imprimir (ahí el ancho de la hoja == ancho del contenedor,
+          así que los márgenes auto valen 0) y NO se toca el contenedor;
+       2) igual, antes de imprimir se quitan TODOS los estilos de visor
+          (beforeprint) y se reponen después (afterprint), de modo que el PDF
+          es exactamente la salida de Paged.js (que en Chromium es impecable). */
+  function stylePreview() {
+    var pages = document.querySelector('.pagedjs_pages');
+    if (!pages) return;
+    var previewNodes = Array.prototype.slice.call(pages.querySelectorAll('.pagedjs_page'));
+
+    function applyPreview() {
+      previewNodes.forEach(function (pg) {
+        pg.style.marginLeft = 'auto';
+        pg.style.marginRight = 'auto';
+        pg.style.boxShadow = '0 2px 20px rgba(36, 31, 49, .14)';
+      });
+    }
+    function clearPreview() {
+      previewNodes.forEach(function (pg) {
+        pg.style.marginLeft = '';
+        pg.style.marginRight = '';
+        pg.style.boxShadow = '';
+      });
+    }
+    applyPreview();
+    window.addEventListener('beforeprint', clearPreview);
+    window.addEventListener('afterprint', applyPreview);
+  }
+
+  /* números de página del índice: en vez de target-counter() de CSS (que en
+     esta versión de Paged.js resolvía a 0), se leen del DOM ya paginado —
+     en qué .pagedjs_page cayó el ancla de cada entrada */
+  function fillPageNumbers() {
+    var pages = Array.prototype.slice.call(document.querySelectorAll('.pagedjs_page'));
+    document.querySelectorAll('.pf-mtoc a').forEach(function (a) {
+      var span = a.querySelector('.pf-mtoc-p');
+      var href = a.getAttribute('href');
+      if (!span || !href || href.charAt(0) !== '#') return;
+      var target;
+      try { target = document.getElementById(decodeURIComponent(href.slice(1))); }
+      catch (e) { target = null; }
+      var page = target && target.closest('.pagedjs_page');
+      var n = page ? (page.getAttribute('data-page-number') || (pages.indexOf(page) + 1)) : null;
+      span.textContent = n || '—';
+    });
   }
 
   /* ================= fetch + extracción ================= */
@@ -125,13 +192,20 @@
       title: text(doc.querySelector('.pf-title')) || slug,
       tagline: text(doc.querySelector('.pf-tagline')),
       date: meta['fecha'] || '',
-      source: meta['fuente'] || url.href.replace(/print\.html$/, ''),
+      tags: meta['tags'] || '',
       toc: doc.querySelector('.pf-toc nav'),
       content: document.adoptNode(content)
     };
   }
 
   function text(el) { return el ? el.textContent.trim() : ''; }
+
+  /* tags como lista, sin el tag interno "proyecto" (portafolio) — el tema lo
+     excluye en la nube de tags y en terms.html; acá igual */
+  function tagList(str) {
+    return (str || '').split('·').map(function (t) { return t.trim(); })
+      .filter(function (t) { return t && t !== 'proyecto'; });
+  }
 
   /* ================= normalización por pieza ================= */
 
@@ -143,6 +217,13 @@
        respecto de SU url original, no de /informes/ */
     c.querySelectorAll('[src]').forEach(function (el) {
       el.setAttribute('src', new URL(el.getAttribute('src'), part.url).href);
+    });
+    /* el print del post trae loading="lazy": acá TODO tiene que cargar antes de
+       paginar — una imagen que llega después de preview() reflowea dentro de
+       hojas ya cortadas (huecos y páginas en blanco), y el await de img.decode()
+       puede quedar pendiente para siempre si el navegador nunca la pide */
+    c.querySelectorAll('img[loading]').forEach(function (img) {
+      img.setAttribute('loading', 'eager');
     });
     c.querySelectorAll('img[srcset], source[srcset]').forEach(function (el) {
       el.setAttribute('srcset', el.getAttribute('srcset').split(',').map(function (c0) {
@@ -260,7 +341,13 @@
       dl.appendChild(el('dd', null, dd));
     }
     row('contiene', parts.map(function (p) { return p.title; }).join('  ·  '));
-    row('fuente', document.body.dataset.site || location.origin);
+    var tagset = [];
+    parts.forEach(function (p) {
+      tagList(p.tags).forEach(function (t) {
+        if (tagset.indexOf(t) === -1) tagset.push(t);
+      });
+    });
+    if (tagset.length) row('tags', tagset.join(' · '));
     row('snapshot', new Date().toISOString().slice(0, 10));
     cover.appendChild(dl);
 
@@ -283,6 +370,7 @@
       a.setAttribute('href', '#pf-part--' + part.slug);
       a.appendChild(el('span', 'pf-mtoc-t', part.n + '. ' + part.title));
       a.appendChild(el('i', 'pf-mtoc-l'));
+      a.appendChild(el('span', 'pf-mtoc-p'));   /* nº de página, lo llena fillPageNumbers() */
       li.appendChild(a);
 
       if (part.toc) {
@@ -294,6 +382,7 @@
             while (sa.firstChild) t.appendChild(sa.firstChild);
             sa.appendChild(t);
             sa.appendChild(el('i', 'pf-mtoc-l'));
+            sa.appendChild(el('span', 'pf-mtoc-p'));
           });
           var sub = el('div', 'pf-mtoc__sub');
           sub.appendChild(document.adoptNode(ul));
@@ -316,7 +405,8 @@
     if (part.tagline) sec.appendChild(el('p', 'pf-part__tagline', part.tagline));
     var meta = el('div', 'pf-part__meta');
     if (part.date) meta.appendChild(el('span', null, part.date));
-    meta.appendChild(el('span', null, part.source));
+    var ptags = tagList(part.tags);
+    if (ptags.length) meta.appendChild(el('span', null, ptags.join(' · ')));
     sec.appendChild(meta);
     return sec;
   }
@@ -339,6 +429,9 @@
     var mermaid = (await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs')).default;
     mermaid.initialize({
       startOnLoad: false, theme: 'base', securityLevel: 'loose',
+      /* etiquetas como <text> SVG, no <foreignObject>: sobreviven a Paged.js
+         y a la impresión (si no, se ven solo las flechas, sin cajas ni texto) */
+      htmlLabels: false, flowchart: { htmlLabels: false },
       themeVariables: {
         darkMode: false, background: '#ffffff',
         primaryColor: '#f3ecfa', primaryTextColor: '#241f31', primaryBorderColor: '#9141ac',
@@ -347,17 +440,58 @@
       }
     });
     await mermaid.run({ querySelector: 'pre.mermaid' });
+
+    /* Paged.js corrompe los <svg> inline al clonarlos (pierde los <text> y
+       les infla la altura → SVG vacío e inquebrable que dispara "Layout
+       repeated" y trunca el flujo). Serializamos cada diagrama ya renderizado
+       a un <img> data-URI: un átomo que Paged.js clona sin tocar. Con
+       htmlLabels:false el SVG no tiene <foreignObject>, así que rasteriza
+       limpio dentro del <img>. */
+    document.querySelectorAll('pre.mermaid svg').forEach(function (svg) {
+      var rect = svg.getBoundingClientRect();
+      var w = Math.ceil(rect.width) || 600, h = Math.ceil(rect.height) || 400;
+      svg.setAttribute('width', w);
+      svg.setAttribute('height', h);
+      if (!svg.getAttribute('xmlns')) svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      var xml = new XMLSerializer().serializeToString(svg);
+      var img = document.createElement('img');
+      img.className = 'pf-mermaid-img';
+      img.setAttribute('width', w);
+      img.setAttribute('height', h);
+      img.style.aspectRatio = w + ' / ' + h;
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
+      var pre = svg.closest('pre.mermaid');
+      (pre || svg).replaceWith(img);
+    });
   }
 
+  /* La barra usa la clase propia `pf-cbar` (NO `pf-toolbar`): Paged.js promueve
+     las @media print de report.css/collection.css a "siempre", y ahí vive
+     `.pf-toolbar{display:none!important}` — con ese nombre la barra quedaría
+     oculta también en el visor (no se podía tocar "Exportar PDF"). Con clase
+     propia esa regla no la alcanza. Para el print real no se usa @media (Paged
+     también la promovería): se oculta con los eventos beforeprint/afterprint,
+     que son de motor y no dependen del CSS. */
   function addToolbar() {
-    var bar = el('div', 'pf-toolbar');
+    var bar = el('div', 'pf-cbar');
+    /* Paged.js quita `position: fixed` de las hojas (rompe su modelo de
+       paginación), así que el anclaje va inline — Paged no toca los estilos
+       inline de un elemento agregado después de preview(). */
+    bar.style.position = 'fixed';
+    bar.style.top = '14px';
+    bar.style.right = '14px';
+    bar.style.zIndex = '50';
     var btn = el('button', null, '⎙ Exportar PDF');
     btn.addEventListener('click', function () { window.print(); });
     bar.appendChild(btn);
-    var edit = el('a', 'pf-edit', '✎ constructor');
+    var edit = el('a', 'pf-cbar-edit', '✎ constructor');
     edit.setAttribute('href', builderUrl + '?' + qs.toString());
     bar.appendChild(edit);
-    bar.appendChild(el('span', 'pf-hint', 'A4 · Ctrl/Cmd + P → Guardar como PDF'));
+    bar.appendChild(el('span', 'pf-cbar-hint', 'A4 · Ctrl/Cmd + P → Guardar como PDF'));
     document.body.appendChild(bar);
+
+    /* que la barra no salga impresa en el PDF */
+    window.addEventListener('beforeprint', function () { bar.style.display = 'none'; });
+    window.addEventListener('afterprint', function () { bar.style.display = ''; });
   }
 })();

@@ -17,7 +17,7 @@
     {{- end -}}
     <span class="post-reading-time">{{ $sep }}{{ .ReadingTime }} {{ $.Site.Params.minuteReadingTime | default "min de lectura" }}</span>
     {{- with .Params.tags }} · <span class="post-meta-tags">{{ delimit . " / " }}</span>{{- end -}}
-    {{- with .OutputFormats.Get "print" }} · <a class="post-pdf-link" href="{{ .RelPermalink }}" title="Vista imprimible — exportar a PDF">⎙ PDF</a>{{- end -}}
+    {{- if .OutputFormats.Get "print" }} · <a class="post-pdf-link" href="{{ printf "%s?%s" ("informes/" | relURL) (querify "p" (path.Base .RelPermalink) "t" .Title) | safeURL }}" title="Exportar a PDF (constructor de informes)">⎙ PDF</a>{{- end -}}
   </div>
 
   <hr>
