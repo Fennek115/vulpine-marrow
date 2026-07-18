@@ -13,13 +13,24 @@
   (p. ej. /posts/vigilancia-masiva/ -> "vigilancia-masiva";
           /posts/codice/codice-00-nota-de-archivo/ -> "codice-00-nota-de-archivo").
   Un [[ ]] sin nota coincidente queda marcado como enlace roto.
+
+  IMPORTANTE — output formats: al renderizar en un formato distinto de "html"
+  (p. ej. el formato "print" de la vista de impresión / export PDF), Hugo hace
+  que .RelPermalink de las OTRAS páginas resuelva a ESE mismo formato. Sin
+  corregirlo, la clave de todas las notas pasaba a ser "print.html" y TODOS los
+  wikilinks aparecían rotos en la salida de impresión. Por eso la clave y el
+  destino se derivan siempre del formato canónico "html".
 */ -}}
 {{- $page := . -}}
 {{- $content := $page.Content -}}
 {{- if strings.Contains $content "[[" -}}
   {{- range $page.Site.RegularPages -}}
-    {{- $key := path.Base (strings.TrimRight "/" .RelPermalink) -}}
+    {{- /* permalink canónico (formato "html"), no el del formato en curso */ -}}
     {{- $url := .RelPermalink -}}
+    {{- with .OutputFormats.Get "html" -}}
+      {{- $url = .RelPermalink -}}
+    {{- end -}}
+    {{- $key := path.Base (strings.TrimRight "/" $url) -}}
     {{- $title := .Title | replaceRE `\$` `$$$$` -}}
     {{- /* alias primero: [[clave|alias]] */ -}}
     {{- $reAlias := printf `\[\[%s\|([^\]]+)\]\]` $key -}}
