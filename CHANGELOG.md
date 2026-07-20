@@ -2,6 +2,17 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Changed
+- **Ruta crítica de render más corta** (regla de los ~14 kB del primer
+  round-trip): los `@font-face` de Fira Code van ahora **inline** en el
+  `<head>` (con `url()` vía `absURL`) en vez de un `<link>` a
+  `vm/tokens/fonts.css` — un request CSS bloqueante menos y descubrimiento
+  de fuentes en el primer parse del HTML; se agrega `preload` del subset
+  latino (`firacode-4.woff2`) y `defer` en el bundle JS del footer.
+  `static/vm/tokens/fonts.css` se conserva para los layouts *print* (PDF).
+
 ## [0.5.0] — 2026-07-07
 
 ### Added

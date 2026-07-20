@@ -68,12 +68,18 @@ claro y la paleta se propagan solos.
 
 ### Las fuentes van aparte (y por qué)
 
-`static/vm/tokens/fonts.css` (los `@font-face` de Fira Code) **no** entra al
-bundle: se enlaza directo con `<link>`. Su `url()` apunta a `../fonts/` —
-**relativo**— y así sigue resolviendo bien aunque el sitio esté servido bajo un
-subpath del `baseURL` (p. ej. `…/dust115/`). Si entrara al bundle fingerprinted
-(servido desde `/css/…`), esa ruta relativa se rompería. Las fuentes son los
-únicos archivos con `url()`, por eso son la única excepción al bundle.
+Los `@font-face` de Fira Code **no** entran al bundle: `partials/head.html`
+los inserta **inline** en un `<style>` del `<head>`, con cada `url()`
+templado vía `absURL` (seguro bajo un `baseURL` con subpath). Inline en vez
+de `<link>` por rendimiento: ahorra un request CSS bloqueante y el navegador
+descubre las fuentes en el primer parse del HTML; además `head.html` hace
+`preload` del subset latino (`firacode-4.woff2`), el único que usa casi toda
+página. Si entraran al bundle fingerprinted (servido desde `/css/…`), una ruta
+relativa se rompería — por eso son la única excepción al bundle.
+
+`static/vm/tokens/fonts.css` (mismos `@font-face`, con `url(../fonts/)`
+relativa) sigue existiendo: lo enlazan los layouts *print* (`single.print`,
+`list.print`), que generan PDFs y no necesitan la optimización inline.
 
 ### El *skin* está partido en 9
 

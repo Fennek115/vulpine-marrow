@@ -130,8 +130,10 @@ themes/vulpine-marrow/
 
 `partials/head.html` arma **un solo bundle** concatenando, en orden explícito:
 `tokens → base (Terminal) → skin (overrides)`, luego `minify` + `fingerprint`.
-Las fuentes se enlazan aparte (`static/vm/tokens/fonts.css`) porque su `url()`
-es relativa y así sigue siendo correcta bajo un `baseURL` con subpath.
+Los `@font-face` van **inline** en el `<head>` (con `url()` vía `absURL`,
+segura bajo un `baseURL` con subpath) más un `preload` del subset latino:
+ahorra un request bloqueante y adelanta el descubrimiento de la fuente.
+`static/vm/tokens/fonts.css` queda para los layouts *print* (PDF).
 
 ## Atribución
 
