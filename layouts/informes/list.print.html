@@ -34,7 +34,7 @@
     <p><a href="{{ (.OutputFormats.Get "HTML").RelPermalink }}">→ ir al constructor</a></p>
   </div>
 
-  <script>window.PagedConfig = { auto: false };</script>
+  <script>window.PagedConfig = { auto: false }; window.VM_MERMAID_SRC = {{ "vm/js/mermaid.min.js" | relURL }};</script>
   <script src="{{ "vm/js/paged.polyfill.min.js" | relURL }}"></script>
   {{ $doc := resources.Get "js/informe-doc.js" | js.Build | minify | fingerprint }}
   <script src="{{ $doc.Permalink }}" defer></script>

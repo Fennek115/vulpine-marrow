@@ -19,10 +19,14 @@
 </script>
 
 {{/* mermaid.js — solo en páginas que tienen diagramas (flag puesto por el render hook).
+     Autohospedado (static/vm/js/mermaid.min.js, build IIFE → window.mermaid):
+     sin dependencia de CDN. El módulo inline corre después del script defer
+     (ambos entran, en orden de documento, a la cola post-parseo del HTML).
      Dos paletas Vulpine Marrow: violeta sobre superficie oscura / sobre bone-white. */}}
 {{ if .Store.Get "hasMermaid" }}
+<script src="{{ "vm/js/mermaid.min.js" | absURL }}" defer></script>
 <script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  var mermaid = window.mermaid;
 
   var THEMES = {
     dark: {

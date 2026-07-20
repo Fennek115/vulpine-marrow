@@ -33,8 +33,12 @@ parámetros, ver [`configuration.md`](configuration.md).
 5. `securityLevel: 'loose'` está activo para permitir nodos clickeables (lo usa
    Synapsis).
 
-> mermaid se carga por CDN (`cdn.jsdelivr.net`). Para self-hostearlo, cambiá el
-> `import` en `extended_footer.html`.
+> mermaid es **autohospedado**: `static/vm/js/mermaid.min.js` (build IIFE que
+> expone `window.mermaid`; versión y licencia en `LICENSE.md`). Se carga con
+> `<script defer>` solo en páginas con diagramas; los builders de PDF
+> (`whitepaper-doc.js` / `informe-doc.js`) lo inyectan bajo demanda vía
+> `window.VM_MERMAID_SRC`. Para actualizarlo: bajar el nuevo
+> `dist/mermaid.min.js` del paquete npm y reemplazar el archivo.
 
 ## Digital garden: wikilinks + backlinks
 

@@ -5,6 +5,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Changed
+- **mermaid autohospedado** (v11.16.0, `static/vm/js/mermaid.min.js`, build
+  IIFE → `window.mermaid`): se elimina la última dependencia externa del tema
+  (CDN jsdelivr) en los cuatro puntos de carga — `extended_footer.html`,
+  `_default/single.print.html`, y los builders `whitepaper-doc.js` /
+  `informe-doc.js` (que ahora lo inyectan bajo demanda vía
+  `window.VM_MERMAID_SRC`, fijada por los layouts print con `relURL`).
+  Atribución MIT en `LICENSE.md`.
 - **Ruta crítica de render más corta** (regla de los ~14 kB del primer
   round-trip): los `@font-face` de Fira Code van ahora **inline** en el
   `<head>` (con `url()` vía `absURL`) en vez de un `<link>` a

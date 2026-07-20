@@ -74,8 +74,9 @@
 
   {{- /* mermaid: paleta clara para impresión (no auto-print) */ -}}
   {{ if .Store.Get "hasMermaid" }}
+  <script src="{{ "vm/js/mermaid.min.js" | absURL }}" defer></script>
   <script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    var mermaid = window.mermaid;
     document.querySelectorAll('pre.mermaid').forEach(function(el){ el.dataset.vmSrc = el.textContent; });
     mermaid.initialize({
       startOnLoad: false, theme: 'base', securityLevel: 'loose',

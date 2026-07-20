@@ -157,8 +157,22 @@ import { keepHeadingsWithContent } from './print-keep.js';
 
   /* ================= mermaid ================= */
 
+  /* mermaid autohospedado (build IIFE → window.mermaid); se carga bajo
+     demanda inyectando el <script>. La ruta la fija el layout en
+     window.VM_MERMAID_SRC (relURL, segura bajo subpath). */
+  function loadMermaid() {
+    return new Promise(function (resolve, reject) {
+      if (window.mermaid) return resolve(window.mermaid);
+      var s = document.createElement('script');
+      s.src = window.VM_MERMAID_SRC || '/vm/js/mermaid.min.js';
+      s.onload = function () { resolve(window.mermaid); };
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
   async function renderMermaid() {
-    var mermaid = (await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs')).default;
+    var mermaid = await loadMermaid();
     mermaid.initialize({
       startOnLoad: false, theme: 'base', securityLevel: 'loose',
       htmlLabels: false, flowchart: { htmlLabels: false },

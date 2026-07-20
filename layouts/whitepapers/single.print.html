@@ -76,7 +76,7 @@
 
   {{- /* Paged.js en espera; whitepaper-doc.js dispara mermaid→img, autolink de
          CVE, números de página y la paginación. */ -}}
-  <script>window.PagedConfig = { auto: false };</script>
+  <script>window.PagedConfig = { auto: false }; window.VM_MERMAID_SRC = {{ "vm/js/mermaid.min.js" | relURL }};</script>
   <script src="{{ "vm/js/paged.polyfill.min.js" | relURL }}"></script>
   {{ $doc := resources.Get "js/whitepaper-doc.js" | js.Build | minify | fingerprint }}
   <script src="{{ $doc.RelPermalink }}" defer></script>

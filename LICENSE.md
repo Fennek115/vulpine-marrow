@@ -35,3 +35,10 @@ hoja de estilos base en `assets/css/base/`).
 
 La tipografía **Fira Code** (en `static/vm/fonts/`) se distribuye bajo la SIL
 Open Font License 1.1; ver `static/vm/fonts/LICENSE-FiraCode.txt`.
+
+Librerías JS vendorizadas (en `static/vm/js/`, ambas MIT):
+
+- **mermaid** (`mermaid.min.js`, v11.16.0) — © Knut Sveidqvist,
+  https://github.com/mermaid-js/mermaid/blob/develop/LICENSE
+- **Paged.js** (`paged.polyfill.min.js`) — © Adam Hyde y colaboradores,
+  https://gitlab.coko.foundation/pagedjs/pagedjs/-/blob/main/LICENSE.md
