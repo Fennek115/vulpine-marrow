@@ -49,7 +49,7 @@
   "css/base/header.css" "css/base/main.css" "css/base/menu.css" "css/base/pagination.css"
   "css/base/post.css" "css/base/syntax.css" "css/base/terminal.css" "css/base/terms.css"
   "css/skin/01-bridge.css" "css/skin/02-layout.css" "css/skin/03-garden.css"
-  "css/skin/04-codice.css" "css/skin/05-elements.css" "css/skin/06-header.css"
+  "css/skin/05-elements.css" "css/skin/06-header.css"
   "css/skin/07-shortcodes.css" "css/skin/08-synapsis.css" "css/skin/09-lightbox.css"
   "css/skin/10-portafolio-search.css" "css/skin/11-codice-svg.css" }}
 {{ $sheets := slice }}
@@ -58,8 +58,10 @@
 <link rel="stylesheet" href="{{ $bundle.Permalink }}">
 
 <!-- Icons -->
-<link rel="shortcut icon" href="{{ "favicon.png" | absURL }}">
-<link rel="apple-touch-icon" href="{{ "apple-touch-icon.png" | absURL }}">
+<link rel="icon" href="{{ "favicon.ico" | absURL }}" sizes="48x48">
+<link rel="icon" href="{{ "favicon.svg" | absURL }}" type="image/svg+xml">
+<link rel="icon" href="{{ "favicon.png" | absURL }}" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="{{ "apple-touch-icon.png" | absURL }}" sizes="180x180">
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary" />

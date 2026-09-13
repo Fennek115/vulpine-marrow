@@ -1,0 +1,15 @@
+{{- /*
+  Filtro por año — fila de "píldoras" (todos + un botón por año con entradas).
+  Puramente presentacional: el comportamiento lo pone el JS de cada página
+  (search.js en /buscar, synapsis.js en /synapsis) leyendo `data-year`.
+  Contexto: dict "pages" (colección), "id" (id del contenedor), "label" (aria).
+  El año se sincroniza con ?y= en la URL para que sea enlazable.
+*/ -}}
+{{- $years := slice -}}
+{{- range .pages.GroupByDate "2006" }}{{ $years = $years | append .Key }}{{ end -}}
+<div class="vm-years" id="{{ .id }}" role="group" aria-label="{{ .label | default "Filtrar por año" }}">
+  <button type="button" class="vm-years__btn is-active" data-year="" aria-pressed="true">todos</button>
+  {{- range $years }}
+  <button type="button" class="vm-years__btn" data-year="{{ . }}" aria-pressed="false">{{ . }}</button>
+  {{- end }}
+</div>

@@ -22,7 +22,7 @@ Qué se heredó de Terminal (MIT, ver [`../LICENSE.md`](../LICENSE.md)):
 | CSS base | `assets/css/base/*.css` | reset, tipografía, code, syntax, etc. |
 | JS | `assets/js/{code,menu}.js` | botón de copia en bloques + menú móvil |
 
-Todo lo demás (single, list, term, index, 404, synapsis, codice, los partials
+Todo lo demás (single, list, term, index, 404, synapsis, los partials
 del garden, el header, los shortcodes y el *skin* CSS) es propio.
 
 ## Herencia de plantillas
@@ -33,7 +33,7 @@ del garden, el header, los shortcodes y el *skin* CSS) es propio.
 baseof.html
 ├── <head> → partial "head.html" → partial "extended_head.html"
 ├── partial "header.html" → partial "logo.html"
-├── block "main"  ← lo definen single/list/term/index/synapsis/404/codice/list
+├── block "main"  ← lo definen single/list/term/index/synapsis/404
 └── block "footer" → partial "footer.html" → partial "extended_footer.html"
 ```
 
@@ -92,10 +92,9 @@ secuencia). Reparto:
 | `01-bridge.css` | bridge de variables, body/fuente, links, tags, botones, code, header/footer, paginación, posts base |
 | `02-layout.css` | ancho único del sitio (`--vm-home`), home curada, listado feed, vista de post (prosa justificada, imágenes/figuras centradas, tablas responsive) |
 | `03-garden.css` | wikilinks + backlinks |
-| `04-codice.css` | índice del Códice |
 | `05-elements.css` | blockquotes, hr, estilo base de tablas, scrollbar, selección, callouts, TOC, mermaid |
 | `06-header.css` | header de una fila, logo `dust115$`, botón de tema, menú |
-| `07-shortcodes.css` | command / figure (centrada) / badge / tlp |
+| `07-shortcodes.css` | command / figure (centrada) / badge / tlp / codice-list |
 | `08-synapsis.css` | página Synapsis |
 | `09-lightbox.css` | lightbox de imágenes/SVG/mermaid (overlay, barra, sombras) |
 

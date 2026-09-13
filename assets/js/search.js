@@ -17,6 +17,7 @@
   var docs = null;     // índice cargado
   var loading = false;
   var pending = null;  // query en espera mientras carga el índice
+  var year = '';       // filtro por año ('' = todos), ver yearfilter.js
 
   // ── Utilidades ─────────────────────────────────────────────────────────
   function tokenize(q) {
@@ -162,19 +163,38 @@
   }
 
   // ── Búsqueda ───────────────────────────────────────────────────────────
+  function inYear(doc) {
+    return !year || (doc.year || (doc.date || '').slice(0, 4)) === year;
+  }
+
   function run(q) {
     var tokens = tokenize(q);
-    if (!tokens.length) {
+    if (!tokens.length && !year) {
       results.textContent = '';
       setStatus(q ? 'Escribí al menos dos caracteres.' : '');
       return;
     }
     if (!docs) { pending = q; ensureIndex(); setStatus('Cargando índice…'); return; }
 
+    var pool = docs.filter(inYear);
+    var suffix = year ? ' en ' + year : '';
+
+    // Solo año, sin texto: listar todo ese año por fecha.
+    if (!tokens.length) {
+      var byDate = pool.slice().sort(function (a, b) {
+        return (b.date || '').localeCompare(a.date || '');
+      });
+      render(byDate, []);
+      setStatus(byDate.length
+        ? byDate.length + (byDate.length === 1 ? ' entrada' : ' entradas') + suffix
+        : 'Sin entradas' + suffix + '.');
+      return;
+    }
+
     var scored = [];
-    for (var i = 0; i < docs.length; i++) {
-      var sc = score(docs[i], tokens);
-      if (sc > 0) scored.push({ doc: docs[i], sc: sc });
+    for (var i = 0; i < pool.length; i++) {
+      var sc = score(pool[i], tokens);
+      if (sc > 0) scored.push({ doc: pool[i], sc: sc });
     }
     scored.sort(function (a, b) {
       if (b.sc !== a.sc) return b.sc - a.sc;
@@ -182,8 +202,8 @@
     });
     render(scored.map(function (x) { return x.doc; }), tokens);
     setStatus(scored.length
-      ? scored.length + (scored.length === 1 ? ' resultado' : ' resultados')
-      : 'Sin resultados para «' + q + '».');
+      ? scored.length + (scored.length === 1 ? ' resultado' : ' resultados') + suffix
+      : 'Sin resultados para «' + q + '»' + suffix + '.');
   }
 
   function ensureIndex() {
@@ -210,10 +230,23 @@
     timer = setTimeout(function () { run(q); }, 120);
   });
 
-  // Prefill desde ?q= y precarga del índice al enfocar.
+  // Filtro por año (partials/year-filter.html + yearfilter.js). Cambiar de
+  // año re-ejecuta la consulta actual.
+  var yearsEl = document.getElementById('vm-search-years');
+  var initial = true;
+  if (yearsEl && window.vmYearFilter) {
+    window.vmYearFilter(yearsEl, function (y) {
+      year = y;
+      if (!initial) run(input.value);
+    });
+  }
+  initial = false;
+
+  // Prefill desde ?q= / ?y= y precarga del índice al enfocar.
   input.addEventListener('focus', ensureIndex, { once: true });
   var params = new URLSearchParams(window.location.search);
   var q0 = params.get('q');
-  if (q0) { input.value = q0; run(q0); }
+  if (q0) input.value = q0;
+  if (q0 || year) run(q0 || '');
   input.focus();
 })();

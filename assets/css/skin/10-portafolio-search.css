@@ -54,3 +54,37 @@
   color: var(--vm-text-3);
   font-style: italic;
 }
+
+/* Filtro por año (partials/year-filter.html) — píldoras compartidas por
+   /buscar y /synapsis. Igual lenguaje que los chips de tags. */
+.vm-years {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin: 0 0 1rem;
+}
+.vm-years__btn {
+  font: inherit;
+  font-size: .82em;
+  line-height: 1.4;
+  padding: 2px 10px;
+  color: var(--vm-text-2);
+  background: transparent;
+  border: 1px solid var(--vm-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.vm-years__btn:hover {
+  color: var(--vm-accent-soft);
+  border-color: var(--vm-purple);
+}
+.vm-years__btn.is-active {
+  color: var(--vm-text-pure);
+  background: var(--vm-accent);
+  border-color: var(--vm-accent);
+}
+.vm-years__btn:focus-visible {
+  outline: none;
+  box-shadow: var(--vm-focus-ring, 0 0 0 2px rgba(145, 65, 172, .4));
+}

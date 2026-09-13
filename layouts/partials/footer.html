@@ -18,11 +18,13 @@
 {{ $cp := resources.Get "js/code.js" | js.Build }}
 {{ $lb := resources.Get "js/lightbox.js" | js.Build }}
 {{ $top := resources.Get "js/backtotop.js" | js.Build }}
+{{ $years := resources.Get "js/yearfilter.js" | js.Build }}
 {{ $search := resources.Get "js/search.js" | js.Build }}
+{{ $syn := resources.Get "js/synapsis.js" | js.Build }}
 
 {{/* fingerprint: el nombre del bundle cambia con el contenido → invalida la caché
      del navegador cuando se edita el JS (si no, queda cacheado bundle.min.js). */}}
-{{ $bundle := slice $menu $cp $lb $top $search | resources.Concat "bundle.js" | resources.Minify | fingerprint }}
+{{ $bundle := slice $menu $cp $lb $top $years $search $syn | resources.Concat "bundle.js" | resources.Minify | fingerprint }}
 
 <script type="text/javascript" src="{{ $bundle.RelPermalink }}" defer></script>
 

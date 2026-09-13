@@ -19,6 +19,10 @@
         spellcheck="false">
     </form>
 
+    {{/* Filtro por año (partials/year-filter.html): acota el índice antes de
+         puntuar; con año elegido y sin texto lista todo ese año. */}}
+    {{ partial "year-filter.html" (dict "pages" (where .Site.RegularPages "Type" "posts") "id" "vm-search-years" "label" "Filtrar resultados por año") }}
+
     <p id="vm-search-status" class="vm-search__status" role="status" aria-live="polite"></p>
     <div id="vm-search-results" class="post-list vm-search__results"></div>
   </div>

@@ -3,10 +3,10 @@
     <div class="index-content">{{ . }}</div>
   {{ end }}
 
-  {{/* Índice del blog — EXCLUYE el Códice del Polvo (su índice está en /codice) */}}
-  {{ $all := where .Site.RegularPages "Type" "posts" }}
-  {{ $codice := where $all "Params.series" "intersect" (slice "Códice del Polvo") }}
-  {{ $blog := complement $codice $all }}
+  {{/* Archivo del blog: todos los posts por fecha desc. Orden explícito — el
+       default de Hugo ordena por weight primero y los capítulos del Códice
+       (que usan weight como orden de lectura) saltarían al principio. */}}
+  {{ $blog := (where .Site.RegularPages "Type" "posts").ByDate.Reverse }}
   {{ $paginator := .Paginate $blog }}
 
   <div class="post-list">

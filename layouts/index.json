@@ -1,16 +1,16 @@
 {{- /* Índice de búsqueda full-text generado en build. Lo consume js/search.js
        (fetch a /index.json) para el buscador client-side, sin CDN ni dependencias.
-       Sólo el BLOG: se excluye el Códice del Polvo (es un libro aparte) igual que
-       en el índice del blog (_default/list.html), y las páginas con `noindex`. */ -}}
-{{- $all := where .Site.RegularPages "Type" "posts" -}}
-{{- $codice := where $all "Params.series" "intersect" (slice "Códice del Polvo") -}}
-{{- $blog := complement $codice $all -}}
+       Todos los posts (incluidos los capítulos del Códice, que son posts) salvo
+       las páginas con `noindex`. Cada entrada lleva `year` para el filtro por
+       año del buscador. */ -}}
+{{- $blog := (where .Site.RegularPages "Type" "posts").ByDate.Reverse -}}
 {{- $idx := slice -}}
 {{- range where $blog "Params.noindex" "!=" true -}}
   {{- $entry := dict
       "title" .Title
       "url" .RelPermalink
       "date" (.Date.Format "2006-01-02")
+      "year" (.Date.Format "2006")
       "section" .Section
       "series" (index (.Params.series | default slice) 0)
       "summary" (partial "wikilinks-plain.html" (.Summary | plainify | htmlUnescape))

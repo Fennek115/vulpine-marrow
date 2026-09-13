@@ -3,11 +3,18 @@
   automáticamente con el motor Related de Hugo (config [related] en hugo.toml,
   afinidad por tags/series). Complementa los backlinks: éstos son citas
   explícitas vía [[wikilink]]; esto es afinidad temática sin intervención
-  manual. Solo aplica al blog — el Códice tiene su propia navegación.
+  manual. Solo entre posts del blog: la serie del Códice (site.Params.codiceSeries)
+  queda fuera en ambos sentidos — sus capítulos ya navegan por prev/next y, al
+  compartir tags/series, se relacionarían solo entre sí.
   Reutiliza las clases de backlinks para no duplicar CSS.
 */ -}}
-{{- if eq .Type "posts" -}}
-  {{- $related := first 3 (where (.Site.RegularPages.Related .) "Type" "posts") -}}
+{{- $series := site.Params.codiceSeries | default "" -}}
+{{- $isCodice := false -}}
+{{- with .Params.series }}{{ if in . $series }}{{ $isCodice = true }}{{ end }}{{ end -}}
+{{- if and (eq .Type "posts") (not $isCodice) -}}
+  {{- $cands := where (.Site.RegularPages.Related .) "Type" "posts" -}}
+  {{- $cands = complement (where $cands "Params.series" "intersect" (slice $series)) $cands -}}
+  {{- $related := first 3 $cands -}}
   {{- with $related -}}
   <aside class="backlinks backlinks--related">
     <h2 class="backlinks__title">Notas relacionadas</h2>

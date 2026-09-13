@@ -4,8 +4,13 @@
     <div class="header__logo">{{ partial "logo.html" . }}</div>
     <nav class="header__nav">
       {{ range .Site.Menus.main }}
-        {{- $ext := eq .Identifier "apt115" -}}
-        <a href="{{ .URL | relLangURL }}"{{ if $ext }} class="header__nav-ext"{{ end }}>{{ .Name }}{{ if $ext }} ↗{{ end }}</a>
+        {{- /* Externo (icono ↗ + estilo): URL absoluta http(s), el histórico apt115,
+               o cualquier ítem con `params.ext = true` (p. ej. otro sitio bajo un
+               subpath del mismo dominio, como /speculum/). */ -}}
+        {{- $abs := or (hasPrefix .URL "http://") (hasPrefix .URL "https://") -}}
+        {{- $ext := or (eq .Identifier "apt115") $abs (.Params.ext | default false) -}}
+        {{- $href := cond $abs .URL (.URL | relLangURL) -}}
+        <a href="{{ $href }}"{{ if $ext }} class="header__nav-ext"{{ end }}>{{ .Name }}{{ if $ext }} ↗{{ end }}</a>
       {{ end }}
       <a href="{{ "/buscar/" | relLangURL }}" class="header__search" aria-label="Buscar" title="Buscar">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor"

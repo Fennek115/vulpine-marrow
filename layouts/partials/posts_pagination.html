@@ -1,11 +1,12 @@
 {{- /*
   Navegación anterior/siguiente consciente de la serie (override del tema).
-  - Capítulos del Códice del Polvo: orden por `weight` (orden de lectura del libro),
-    navegando SOLO dentro del Códice.
-  - Resto del blog: orden por fecha, navegando SOLO entre posts del blog (sin Códice).
-  Así el next/prev nunca se fuga de un grupo al otro.
+  - Páginas de la "serie fija" `site.Params.codiceSeries` (p. ej. un libro):
+    orden por `weight` (orden de lectura), navegando SOLO dentro de esa serie.
+  - Resto del blog: orden por fecha, navegando SOLO entre posts del blog.
+  Así el next/prev nunca se fuga de un grupo al otro. Sin el param configurado,
+  todo es "blog" y navega por fecha.
 */ -}}
-{{- $series := "Códice del Polvo" -}}
+{{- $series := site.Params.codiceSeries | default "" -}}
 {{- $isCodice := false -}}
 {{- with .Params.series }}{{ if in . $series }}{{ $isCodice = true }}{{ end }}{{ end -}}
 
@@ -31,7 +32,7 @@
 {{ if or $prev $next }}
 <div class="pagination">
   <div class="pagination__title">
-    <span class="pagination__title-h">{{ if $isCodice }}Códice del Polvo{{ else }}{{ $.Site.Params.ReadOtherPosts }}{{ end }}</span>
+    <span class="pagination__title-h">{{ if $isCodice }}{{ $series }}{{ else }}{{ $.Site.Params.ReadOtherPosts }}{{ end }}</span>
     <hr />
   </div>
   <div class="pagination__buttons">

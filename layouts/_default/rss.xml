@@ -9,6 +9,9 @@
 {{- else -}}
 {{- $pages = $pctx.Pages -}}
 {{- end -}}
+{{- /* Orden explícito por fecha: el default de Hugo ordena por weight primero
+       y las páginas con weight (capítulos del Códice) coparían el feed. */ -}}
+{{- $pages = $pages.ByDate.Reverse -}}
 {{- $limit := .Site.Config.Services.RSS.Limit -}}
 {{- if ge $limit 1 -}}
 {{- $pages = $pages | first $limit -}}

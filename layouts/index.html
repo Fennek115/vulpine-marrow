@@ -6,10 +6,10 @@
   {{ end }}
   {{ with .Site.Params.subtitle }}<p class="dust-subtitle">{{ . }}</p>{{ end }}
 
-  {{/* Home curada: últimos posts del blog (excluye Códice). Archivo completo en /posts. */}}
-  {{ $all := where .Site.RegularPages "Type" "posts" }}
-  {{ $codice := where $all "Params.series" "intersect" (slice "Códice del Polvo") }}
-  {{ $blog := complement $codice $all }}
+  {{/* Home curada: últimos posts por fecha (orden explícito: el default de Hugo
+       pone primero las páginas con weight, y los capítulos del Códice lo usan
+       como orden de lectura). Archivo completo en /posts. */}}
+  {{ $blog := (where .Site.RegularPages "Type" "posts").ByDate.Reverse }}
 
   <div class="post-list">
     {{ range first 6 $blog }}

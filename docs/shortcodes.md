@@ -63,8 +63,10 @@ Pie estilo commit de git.
 
 ## codice-list
 
-Lista los capítulos de una sección cuyo `weight` cae en un rango (pensado para un
-índice semi-automático que no se desincroniza al agregar/quitar capítulos).
+Lista las páginas de la serie `params.codiceSeries` (default «Códice del Polvo»)
+cuyo `weight` cae en un rango, ordenadas por `weight` (pensado para un índice
+semi-automático que no se desincroniza al agregar/quitar capítulos). Las páginas
+pueden vivir en cualquier sección — lo que las identifica es la `series`.
 
 | Parámetro | Req. | Descripción |
 |-----------|------|-------------|

@@ -4,7 +4,34 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- **Filtro por año** (`partials/year-filter.html` + `js/yearfilter.js`,
+  sincronizado con `?y=`): en `/buscar` acota el índice antes de puntuar (y
+  con año elegido sin texto lista todo ese año); en Synapsis poda el grafo
+  mermaid (`js/synapsis.js`: nodos del año + vecinos directos, re-render vía
+  `__vmRenderMermaid`) y filtra el índice cronológico. `index.json` emite
+  `year` por entrada.
+- Params `codiceSeries` y `codiceIndex` (ver `docs/configuration.md`): el
+  nombre de la serie-libro deja de estar hardcodeado en los partials. **Default
+  vacío** → la feature de "serie fija" es opt-in; sin configurar, todas las
+  páginas son posts normales (el tema no asume ninguna serie). El shortcode
+  `codice-list` recorta la etiqueta hasta el primer separador ` — `/` | ` de
+  forma genérica (sirve para cualquier serie, no solo la del sitio de origen).
+
 ### Changed
+- **La serie del Códice ya no es una sección**: sus capítulos son posts
+  normales identificados por `series`. Se elimina `layouts/codice/list.html`
+  y `04-codice.css` (el estilo de `codice-list` pasa a `07-shortcodes.css`);
+  `codice-list` filtra por serie en vez de por sección. Home, `/posts`, RSS e
+  `index.json` incluyen la serie y ordenan **explícitamente por fecha**.
+  `related.html` y las aristas automáticas de Synapsis excluyen la serie en
+  ambos sentidos.
+
+### Fixed
+- **RSS**: el feed de la home listaba las páginas con `weight` (capítulos del
+  Códice) en vez de los posts recientes — el orden default de Hugo es weight
+  primero. Ahora `rss.xml` ordena por fecha.
+
 - **mermaid autohospedado** (v11.16.0, `static/vm/js/mermaid.min.js`, build
   IIFE → `window.mermaid`): se elimina la última dependencia externa del tema
   (CDN jsdelivr) en los cuatro puntos de carga — `extended_footer.html`,

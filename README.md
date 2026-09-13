@@ -68,14 +68,16 @@ hugo server --themesDir ../..
   **backlinks** «Mencionado en» (`partials/backlinks.html`). La clave es el
   último segmento del `RelPermalink`.
 - **Synapsis** (`_default/synapsis.html`): página-hub con un grafo dirigido de
-  los wikilinks (mermaid/dagre, layout en capas estilo Sugiyama) + índice
-  cronológico del blog por año. Úsala con `layout: "synapsis"` en una página.
+  los wikilinks (mermaid/dagre, layout en capas estilo Sugiyama), nube de tags
+  e índice cronológico del blog, con **filtro por año** que poda el grafo.
+  Úsala con `layout: "synapsis"` en una página.
 - **Listado feed** de columna única (`partials/post-card.html`): serie ⟐,
   título, meta, summary y chips de tag — sin covers. Usado por home, `/posts`
   y páginas de tag.
 - **Navegación prev/next consciente de la serie**
-  (`partials/posts_pagination.html`): el Códice navega por `weight` dentro del
-  Códice; el blog por fecha dentro del blog, sin fugas entre ambos.
+  (`partials/posts_pagination.html`): la serie `params.codiceSeries` navega
+  por `weight` dentro de la serie; el blog por fecha dentro del blog, sin fugas
+  entre ambos.
 - **Tabla de contenidos** opt-in por página (`toc: true`).
 - **Highlighting de sintaxis** (Chroma, clases) + botón de copia en bloques de
   código (`assets/js/code.js`).
@@ -90,7 +92,7 @@ hugo server --themesDir ../..
 | `listening` | Bloque «escuchando ahora» (track/artist/album) |
 | `ascii` | Envuelve arte braille/ASCII con tamaño correcto |
 | `commit` | Pie estilo git-commit |
-| `codice-list` | Lista capítulos del Códice por rango de `weight` |
+| `codice-list` | Lista capítulos de la serie `codiceSeries` por rango de `weight` |
 | `callout` | Aside resaltado (info/tip/warning/danger) |
 | `command` | Bloque de comando copiable |
 | `figure` | Imagen con caption + crédito (resuelve page-bundle) |
@@ -108,10 +110,10 @@ themes/vulpine-marrow/
 │   ├── _default/               # baseof, single, list, term, terms, synapsis
 │   │   └── _markup/            # render hook de mermaid
 │   ├── index.html · 404.html
-│   ├── codice/list.html        # landing del Códice
 │   ├── partials/               # head, footer, header, cover, comments,
 │   │                           # post-date, pagination, posts_pagination,
 │   │                           # logo, post-card, wikilinks, backlinks,
+│   │                           # related, year-filter,
 │   │                           # extended_head, extended_footer
 │   └── shortcodes/             # los 9 de arriba
 ├── assets/

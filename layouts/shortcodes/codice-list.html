@@ -1,18 +1,26 @@
 {{- /*
-  Lista capítulos del Códice en un rango de weight, ordenados por weight asc.
+  Índice autogenerado de una "serie fija" (p. ej. un libro/manual): lista sus
+  páginas cuyo `weight` cae en un rango, ordenadas por weight asc, así el índice
+  no se desincroniza al agregar/quitar capítulos. Las páginas son posts normales
+  identificados por `series`; qué serie es lo define `site.Params.codiceSeries`
+  (sin ese param, el shortcode no lista nada). El prefijo del título hasta " — "
+  o " | " se recorta para etiquetas limpias.
   Uso: {{< codice-list min="1000" max="1999" >}}
-  Autogenera la lista a partir de los archivos de la sección codice (orden de
-  lectura = weight), así el índice no se desincroniza al agregar/quitar capítulos.
-  El prefijo "Códice | " / "Códice del Polvo — " se recorta para etiquetas limpias.
 */ -}}
 {{- $min := .Get "min" | int -}}
 {{- $max := .Get "max" | int -}}
-{{- $pages := where (where site.RegularPages "Section" "codice") "Weight" ">=" $min -}}
+{{- $series := site.Params.codiceSeries | default "" -}}
+{{- if $series -}}
+{{- $pages := where site.RegularPages "Params.series" "intersect" (slice $series) -}}
+{{- $pages = where $pages "Weight" ">=" $min -}}
 {{- $pages = where $pages "Weight" "<=" $max -}}
 {{- $pages = sort $pages "Weight" -}}
 <ul class="codice-index">
 {{- range $pages }}
-  {{- $label := .Title | strings.TrimPrefix "Códice | " | strings.TrimPrefix "Códice del Polvo — " -}}
+  {{- /* Recorta el prefijo del título hasta el primer separador " — " o " | " (p. ej.
+         "Códice | II-A — Foo" -> "II-A — Foo"); si no hay separador, deja el título. */ -}}
+  {{- $label := .Title | replaceRE `^.*?( — | \| )` "" -}}
   <li><a href="{{ .RelPermalink }}">{{ $label }}</a></li>
 {{- end }}
 </ul>
+{{- end -}}

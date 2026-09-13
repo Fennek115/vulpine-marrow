@@ -33,6 +33,8 @@ theme = "vulpine-marrow"
 | `oneHeadingSize` | `false` | iguala el tamaño de todos los headings |
 | `FullWidthTheme` / `CenterTheme` | `false` | ancho del contenedor (ver nota) |
 | `Keywords` | — | meta keywords global |
+| `codiceSeries` | — (vacío) | **Opt-in.** Nombre de una `series` que el tema trata como "libro/serie fija": prev/next por `weight` dentro de la serie, shortcode `codice-list`, y exclusión de la afinidad automática (related / Synapsis). Sin este param, la feature queda apagada y esas páginas son posts normales. |
+| `codiceIndex` | — | URL del índice de esa serie (p. ej. `/posts/codice/`); si está, Synapsis enlaza a él desde el índice cronológico. Solo aplica con `codiceSeries` configurado. |
 | `Twitter.site` / `Twitter.creator` | — | Twitter Card |
 
 > El *skin* fija el ancho de lectura en **720px centrado** (`.container`), así que
