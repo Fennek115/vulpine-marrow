@@ -111,6 +111,14 @@ pre.mermaid {
   text-align: center;
   margin: 24px 0;
 }
+/* las etiquetas de mermaid son <p> dentro de foreignObject: sin la prosa
+   justificada ni el corte a mitad de palabra del cuerpo del post */
+.post--single .post-content pre.mermaid :is(p, span) {
+  text-align: center;
+  text-align-last: center;
+  word-break: normal;
+  overflow-wrap: normal;
+}
 
 /* Botón flotante "subir al inicio" — oculto hasta desplazarse (ver backtotop.js).
    Respeta el notch en móvil con env(safe-area-inset-*). */

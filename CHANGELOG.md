@@ -28,6 +28,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/).
   ambos sentidos.
 
 ### Fixed
+- **Mermaid perdía los `<br/>`** de las etiquetas: el render hook emitía el
+  código con `safeHTML`, el navegador lo convertía en elementos reales y
+  `textContent` (de donde se re-renderiza) los descartaba. Ahora el código va
+  escapado. Además: colores explícitos de subgraph (`clusterBkg`,
+  `clusterBorder`, `titleColor`, `edgeLabelBackground`) en ambas paletas, y
+  las etiquetas quedan centradas sin heredar la prosa justificada del post.
 - **RSS**: el feed de la home listaba las páginas con `weight` (capítulos del
   Códice) en vez de los posts recientes — el orden default de Hugo es weight
   primero. Ahora `rss.xml` ordena por fecha.
