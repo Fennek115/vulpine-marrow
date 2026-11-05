@@ -143,7 +143,10 @@
    las tablas: las celdas vuelven a romper sólo entre palabras y las columnas
    se dimensionan por contenido (table-layout: auto), así no quedan feas. */
 .post--single .post-content table { table-layout: auto; }
-.post--single .post-content :is(th, td) {
+/* también a los descendientes (enlaces, `code`…): el selector universal de
+   base los alcanza a ellos directamente, así que heredar no basta ("ve|r"). */
+.post--single .post-content :is(th, td),
+.post--single .post-content :is(th, td) * {
   word-break: normal;
   overflow-wrap: normal;
   hyphens: none;

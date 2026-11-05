@@ -9,15 +9,202 @@
 }
 .syn-note { font-size: .85em; color: var(--vm-text-2); margin: 0 0 14px; }
 
-/* grafo: permite que el SVG respire más ancho que la columna de 720 */
+/* ── Grafo de notas (js/synapsis.js) ──
+   Red de fuerzas en SVG. Colores desde los tokens, así que el modo claro
+   sale solo. Texto y trazos a tamaño constante en pantalla (--syn-k = zoom). */
 .syn-graph {
-  border: 1px solid var(--vm-border);
-  border-radius: 8px;
-  background: var(--vm-code-bg);
-  padding: 12px;
-  overflow-x: auto;
+  position: relative;
+  height: clamp(380px, 62vw, 620px);
+  border: 1px solid var(--vm-border-2);
+  border-radius: 10px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 45%, var(--vm-tint-10), transparent 70%),
+    radial-gradient(circle, var(--vm-hairline) 1px, transparent 1.2px) 0 0 / 22px 22px,
+    var(--vm-bg-0);
+  /* en táctil: el deslizamiento vertical sigue desplazando la página; el
+     horizontal mueve el grafo y el pellizco hace zoom (pantalla completa: todo) */
+  touch-action: pan-y;
+  user-select: none;
 }
-.syn-graph pre.mermaid { margin: 0; text-align: center; }
+.syn-graph[hidden] { display: none; }
+@media (max-width: 560px) {
+  .syn-graph { height: clamp(420px, 125vw, 580px); }
+}
+.syn-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity .5s ease;
+}
+.syn-graph.is-ready .syn-svg { opacity: 1; }
+.syn-graph.is-panning .syn-svg { cursor: grabbing; }
+
+/* aristas */
+.syn-link {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  transition: opacity .2s, stroke .2s;
+}
+.syn-link--cite { stroke: var(--vm-accent); stroke-width: 1.2; opacity: .55; }
+.syn-link--aff  { stroke: var(--vm-text-3); stroke-width: 1; stroke-dasharray: 3 4; opacity: .45; }
+.syn-arrow { fill: var(--vm-accent); }
+
+/* nodos */
+.syn-node { cursor: pointer; outline: none; transition: opacity .2s; }
+.syn-dot {
+  fill: var(--vm-bg-3);
+  stroke: var(--vm-accent);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+  transition: fill .2s, stroke .2s;
+}
+.syn-node.is-hub .syn-dot {
+  fill: var(--vm-purple);
+  stroke: var(--vm-accent-soft);
+  filter: url(#syn-glow);
+}
+.syn-node:not(.is-hub) .syn-dot { fill-opacity: .9; }
+.syn-label {
+  fill: var(--vm-text-2);
+  font-family: 'Fira Code', monospace;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--vm-bg-0);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .2s;
+}
+.syn-node.is-lbl .syn-label { opacity: .9; }
+.syn-node.is-hub .syn-label { fill: var(--vm-text-1); }
+
+/* foco (hover / teclado): la nota y sus vecinas, el resto en penumbra */
+.syn-graph.is-focus .syn-node:not(.is-on):not(.is-nb) { opacity: .15; }
+.syn-graph.is-focus .syn-link:not(.is-on) { opacity: .06; }
+.syn-graph.is-focus .syn-link.is-on { opacity: 1; }
+.syn-graph.is-focus .syn-link--cite.is-on { stroke: var(--vm-purple); stroke-width: 1.8; }
+.syn-graph.is-focus .syn-node:is(.is-on, .is-nb) .syn-label { opacity: 1; }
+.syn-node.is-on .syn-dot { fill: var(--vm-purple); stroke: var(--vm-text-pure); }
+.syn-node.is-on .syn-label { fill: var(--vm-text-pure); }
+.syn-node:focus-visible .syn-dot { stroke: var(--vm-text-pure); stroke-width: 2.5; }
+
+/* filtro por año: lo de fuera queda como contexto tenue */
+.syn-node.is-out { opacity: .1; }
+.syn-link.is-out { opacity: .04; }
+.syn-node.is-edge .syn-dot { fill: transparent; stroke-dasharray: 2 2; }
+
+/* tooltip */
+.syn-tip {
+  position: absolute;
+  z-index: 3;
+  max-width: 300px;
+  padding: 7px 10px;
+  border: 1px solid var(--vm-border-2);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--vm-bg-2) 92%, transparent);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
+  pointer-events: none;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.syn-tip strong { display: block; color: var(--vm-text-1); font-weight: 600; }
+.syn-tip span { color: var(--vm-text-3); font-size: 11px; }
+
+/* controles */
+.syn-tools {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.syn-tools button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font: 15px/1 'Fira Code', monospace;
+  color: var(--vm-text-2);
+  background: color-mix(in srgb, var(--vm-bg-2) 85%, transparent);
+  border: 1px solid var(--vm-border-2);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.syn-tools button:hover,
+.syn-tools button:focus-visible { color: var(--vm-text-pure); border-color: var(--vm-purple); }
+
+/* aviso "Ctrl + rueda" — aparece si alguien intenta hacer zoom con la rueda */
+.syn-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 3px 10px;
+  font-size: 11px;
+  color: var(--vm-text-3);
+  background: color-mix(in srgb, var(--vm-bg-0) 80%, transparent);
+  border-radius: 999px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: .7;
+  transition: opacity .2s, color .2s;
+}
+.syn-graph.show-hint .syn-hint { opacity: 1; color: var(--vm-text-1); }
+.syn-graph.is-full .syn-hint { opacity: 0; }
+.syn-hint__touch { display: none; }
+@media (pointer: coarse) {
+  .syn-hint__mouse { display: none; }
+  .syn-hint__touch { display: inline; }
+}
+
+/* pantalla completa (sin Fullscreen API: overlay fijo) */
+.syn-graph.is-full {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  height: auto;
+  border: none;
+  border-radius: 0;
+  touch-action: none;
+}
+
+/* leyenda */
+.syn-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  font-size: .78em;
+  color: var(--vm-text-3);
+}
+.syn-legend li { display: flex; align-items: center; gap: 7px; }
+.post .syn-legend li:not(:empty)::before { content: none; }
+.syn-key {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--vm-bg-3);
+  border: 1.5px solid var(--vm-accent);
+}
+.syn-key--hub { background: var(--vm-purple); border-color: var(--vm-accent-soft); box-shadow: 0 0 6px var(--vm-purple); }
+.syn-key--cite, .syn-key--aff { width: 22px; height: 0; border-radius: 0; background: none; border: none; border-top: 1.5px solid var(--vm-accent); }
+.syn-key--aff { border-top: 1.5px dashed var(--vm-text-3); }
+
+@media (prefers-reduced-motion: reduce) {
+  .syn-svg, .syn-link, .syn-node, .syn-dot, .syn-label { transition: none; }
+}
 
 /* nube de tags — vocabulario del blog, tamaño = frecuencia */
 .tag-cloud {

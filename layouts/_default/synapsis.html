@@ -11,10 +11,10 @@
   {{ partial "year-filter.html" (dict "pages" $posts "id" "syn-years" "label" "Filtrar por año") }}
 
   {{/* ============================================================
-       Grafo de notas — dirigido y jerárquico.
-       Hugo arma la definición mermaid desde los wikilinks [[ ]];
-       mermaid (dagre) la dibuja en capas. Clave = path.Base, igual
-       que partials/wikilinks.html y backlinks.html.
+       Grafo de notas — red de fuerzas (js/synapsis.js, sin dependencias).
+       Hugo arma nodos y aristas desde los wikilinks [[ ]] y los emite como
+       JSON; el navegador calcula el layout y dibuja el SVG. Clave =
+       path.Base, igual que partials/wikilinks.html y backlinks.html.
        ============================================================ */}}
   {{- $pages := where .Site.RegularPages "Type" "posts" -}}
   {{- $byKey := dict -}}
@@ -77,9 +77,9 @@
     {{- end -}}
   {{- end -}}
 
-  {{/* key -> id secuencial; conteo de entradas (backlinks) para el hub */}}
+  {{/* key -> índice; conteo de entradas (backlinks) para marcar los hubs */}}
   {{- $idmap := dict -}}
-  {{- range $i, $k := $nodes -}}{{- $idmap = merge $idmap (dict $k (printf "n%d" $i)) -}}{{- end -}}
+  {{- range $i, $k := $nodes -}}{{- $idmap = merge $idmap (dict $k $i) -}}{{- end -}}
   {{- $incount := dict -}}
   {{- range $e := $edges -}}
     {{- $t := $e.t -}}
@@ -89,24 +89,34 @@
   <section class="syn-section">
     <h2 class="syn-h">Grafo de notas</h2>
     {{- if gt (len $nodes) 0 }}
-    <p class="syn-note">{{ len $nodes }} notas conectadas · {{ len $edges }} citas · {{ len $autoEdges }} enlaces por afinidad. Flecha sólida: la nota que cita apunta a la citada. Línea punteada: afinidad temática (tags compartidos), calculada en cada build. Clic en un nodo abre el post.</p>
-    {{- $lines := slice "flowchart TD" -}}
-    {{- range $k := $nodes -}}{{- $p := index $byKey $k -}}{{- $lbl := replaceRE `"` "'" $p.Title -}}{{- $lines = $lines | append (printf `  %s["%s"]` (index $idmap $k) $lbl) -}}{{- end -}}
-    {{- range $e := $edges -}}{{- $lines = $lines | append (printf `  %s --> %s` (index $idmap $e.s) (index $idmap $e.t)) -}}{{- end -}}
-    {{- range $e := $autoEdges -}}{{- $lines = $lines | append (printf `  %s -.- %s` (index $idmap $e.s) (index $idmap $e.t)) -}}{{- end -}}
-    {{- range $k := $nodes -}}{{- $p := index $byKey $k -}}{{- $lines = $lines | append (printf `  click %s "%s"` (index $idmap $k) $p.RelPermalink) -}}{{- end -}}
-    {{- $lines = $lines | append `  classDef hub fill:#9141ac,stroke:#c471ed,color:#fff,stroke-width:2px;` -}}
-    {{- range $k := $nodes -}}{{- if ge (int (index $incount $k | default 0)) 2 -}}{{- $lines = $lines | append (printf `  class %s hub` (index $idmap $k)) -}}{{- end -}}{{- end -}}
-    {{- $years := dict -}}
-    {{- range $k := $nodes -}}{{- $p := index $byKey $k -}}{{- $years = merge $years (dict (index $idmap $k) ($p.Date.Format "2006")) -}}{{- end }}
-    <script type="application/json" id="syn-graph-years">{{ $years | jsonify | safeJS }}</script>
-    <p class="syn-note syn-graph-empty" hidden>Ninguna nota conectada en ese año.</p>
-    <div class="syn-graph">
-<pre class="mermaid" id="syn-graph">
-{{ delimit $lines "\n" | safeHTML }}
-</pre>
+    <p class="syn-note">{{ len $nodes }} notas conectadas · {{ len $edges }} citas · {{ len $autoEdges }} enlaces por afinidad. Pasa el cursor por una nota para ver sus vecinas; clic para abrirla.</p>
+    {{- $gn := slice -}}
+    {{- range $k := $nodes -}}
+      {{- $p := index $byKey $k -}}
+      {{- $gn = $gn | append (dict "t" $p.Title "u" $p.RelPermalink "y" ($p.Date.Format "2006") "d" ($p.Date.Format "2006-01-02") "in" (int (index $incount $k | default 0))) -}}
+    {{- end -}}
+    {{- $gl := slice -}}
+    {{- range $e := $edges -}}{{- $gl = $gl | append (slice (index $idmap $e.s) (index $idmap $e.t) 1) -}}{{- end -}}
+    {{- range $e := $autoEdges -}}{{- $gl = $gl | append (slice (index $idmap $e.s) (index $idmap $e.t) 0) -}}{{- end }}
+    <script type="application/json" id="syn-graph-data">{{ dict "nodes" $gn "links" $gl | jsonify | safeJS }}</script>
+    <div class="syn-graph" id="syn-graph" aria-label="Grafo de notas: {{ len $nodes }} notas. El índice cronológico de abajo lista las mismas entradas.">
+      <div class="syn-tools" role="toolbar" aria-label="Controles del grafo">
+        <button type="button" data-act="in" aria-label="Acercar" title="Acercar">+</button>
+        <button type="button" data-act="out" aria-label="Alejar" title="Alejar">−</button>
+        <button type="button" data-act="fit" aria-label="Encuadrar" title="Encuadrar">⌖</button>
+        <button type="button" data-act="full" aria-label="Pantalla completa" title="Pantalla completa">⛶</button>
+      </div>
+      <div class="syn-tip" hidden></div>
+      <p class="syn-hint"><span class="syn-hint__mouse">arrastra para mover · Ctrl + rueda para zoom</span><span class="syn-hint__touch">pellizca para zoom · ⛶ pantalla completa</span></p>
+      <noscript><p class="syn-note">El grafo necesita JavaScript; el índice cronológico de abajo tiene las mismas notas.</p></noscript>
     </div>
-    {{- .Store.Set "hasMermaid" true -}}
+    <p class="syn-note syn-graph-empty" hidden>Ninguna nota conectada en ese año.</p>
+    <ul class="syn-legend">
+      <li><span class="syn-key syn-key--hub"></span>de las más citadas</li>
+      <li><span class="syn-key"></span>nota</li>
+      <li><span class="syn-key syn-key--cite"></span>cita (apunta a la citada)</li>
+      <li><span class="syn-key syn-key--aff"></span>afinidad por tags</li>
+    </ul>
     {{- else }}
     <p class="syn-note">Todavía no hay notas enlazadas con <code>[[wikilinks]]</code>.</p>
     {{- end }}

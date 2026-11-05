@@ -2,17 +2,10 @@
    Lógica en assets/js/lightbox.js. Estética terminal-clean: fondo oscuro,
    barra violeta, Fira Code. */
 
-/* cursor "ampliar" en los disparadores dentro de un post
-   (y en el grafo de Synapsis, que vive fuera de .post-content) */
+/* cursor "ampliar" en los disparadores dentro de un post */
 .post--single .post-content :is(img, svg),
-.post--single .post-content pre.mermaid,
-.post--single .syn-graph pre.mermaid {
+.post--single .post-content pre.mermaid {
   cursor: zoom-in;
-}
-
-/* los nodos del grafo son enlaces (click de mermaid): pointer, no zoom */
-.post--single .syn-graph pre.mermaid a {
-  cursor: pointer;
 }
 
 /* mientras hay overlay abierto, se bloquea el scroll del documento */

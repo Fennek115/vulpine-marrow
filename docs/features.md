@@ -78,11 +78,12 @@ una página. Arriba, un **filtro por año** (`partials/year-filter.html` +
 `js/yearfilter.js`, sincronizado con `?y=` en la URL) que acota el grafo y el
 índice cronológico; luego tres secciones:
 
-1. **Grafo dirigido jerárquico** con dos tipos de arista:
+1. **Grafo de notas** (red de fuerzas en SVG, `js/synapsis.js`, sin
+   dependencias) con dos tipos de arista:
    - **Citas explícitas** (flecha sólida, cita → citada): Hugo recorre las
      páginas, extrae los `[[ ]]` con `findRE` y resuelve claves igual que
-     wikilinks. Un `classDef hub` resalta las notas con ≥2 citas entrantes.
-   - **Afinidad temática** (línea punteada `-.-`): calculada en cada build con
+     wikilinks.
+   - **Afinidad temática** (línea punteada): calculada en cada build con
      el motor *Related Content* de Hugo (misma config `[related]` que
      `related.html`), top 3 por post, pares deduplicados y sin repetir los ya
      unidos por wikilink. Solo entre posts del blog fuera de la serie
@@ -91,12 +92,20 @@ una página. Arriba, un **filtro por año** (`partials/year-filter.html` +
      Así el grafo **se actualiza solo** al publicar: un post nuevo entra por
      sus tags aunque nadie lo haya citado aún.
 
-   Se emite una definición `flowchart TD` de mermaid con `click` por nodo;
-   mermaid/dagre la dibuja en capas (layout Sugiyama). Reusa la carga y el
-   theming de mermaid. Junto al `<pre>` va un JSON `#syn-graph-years`
-   (id de nodo → año); `js/synapsis.js` **poda la fuente mermaid** al elegir
-   año (nodos de ese año + vecinos directos y las aristas entre ellos) y
-   re-renderiza con `window.__vmRenderMermaid`.
+   Hugo emite los datos como JSON (`#syn-graph-data`: `nodes` con título,
+   URL, año, fecha y citas entrantes; `links` como tripletas planas
+   `origen, destino, tipo`). El navegador calcula un layout de fuerzas
+   determinista (repulsión, resortes, gravedad apaisada, colisión; mismo
+   grafo → mismo dibujo; se transpone en marcos verticales) y dibuja el SVG
+   con colores de los tokens, así que el modo claro sale solo. El tamaño del
+   nodo crece con sus conexiones; las notas más citadas (≥3 citas y ~12 %
+   superior) se resaltan como *hubs*. Etiquetas sin choques: de lejos solo
+   las 7 más citadas, al acercar todas las que quepan. Hover/foco resalta la
+   nota, sus vecinas y sus aristas (con tooltip); clic abre el post.
+   Arrastrar mueve, Ctrl + rueda o pellizco hace zoom, y hay botones de
+   zoom, encuadrar y pantalla completa (Esc sale). El **filtro por año** no
+   recalcula el layout: atenúa lo de otros años, deja las vecinas directas
+   como contexto (borde punteado) y encuadra las notas del año.
 2. **Nube de tags** del blog, dimensionada por frecuencia.
 3. **Índice cronológico**: los posts del blog (`Type == "posts"`) agrupados por
    año con `GroupByDate`; el filtro solo oculta los bloques de otros años.

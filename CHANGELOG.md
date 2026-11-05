@@ -19,6 +19,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/).
   forma genérica (sirve para cualquier serie, no solo la del sitio de origen).
 
 ### Changed
+- **Enlaces externos en pestaña nueva**: render hook `_markup/render-link.html`
+  — los enlaces markdown a otro host (http/https) llevan `target="_blank"
+  rel="noopener noreferrer"`; anclas, rutas relativas y el propio dominio
+  siguen en la misma pestaña.
+- **Synapsis: el grafo deja mermaid por una red de fuerzas propia** (SVG, sin
+  dependencias, `js/synapsis.js`). Con ~120 notas el layout jerárquico de
+  dagre quedaba ilegible y la vista completa podía romper con *Syntax error*.
+  Ahora: nodos con tamaño según conexiones, hubs resaltados, etiquetas sin
+  choques, hover con vecinas y tooltip, pan/zoom (ratón, Ctrl + rueda,
+  pellizco), botones de zoom/encuadre/pantalla completa, layout transpuesto
+  en móvil y colores desde los tokens (modo claro automático). El filtro por
+  año atenúa y encuadra en vez de podar y redibujar. El grafo ya no abre el
+  lightbox (tiene su propio zoom) ni carga mermaid.
 - **La serie del Códice ya no es una sección**: sus capítulos son posts
   normales identificados por `series`. Se elimina `layouts/codice/list.html`
   y `04-codice.css` (el estilo de `codice-list` pasa a `07-shortcodes.css`);
@@ -37,6 +50,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/).
 - **RSS**: el feed de la home listaba las páginas con `weight` (capítulos del
   Códice) en vez de los posts recientes — el orden default de Hugo es weight
   primero. Ahora `rss.xml` ordena por fecha.
+- **Tablas: cortes a mitad de palabra dentro de enlaces y `code`** ("ve|r"):
+  la regla anti-corte de `th`/`td` no llegaba a los descendientes, que el
+  selector universal de base alcanza directamente. Ahora cubre también
+  `:is(th, td) *`.
 
 - **mermaid autohospedado** (v11.16.0, `static/vm/js/mermaid.min.js`, build
   IIFE → `window.mermaid`): se elimina la última dependencia externa del tema
