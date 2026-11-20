@@ -1,0 +1,56 @@
+{{/* Sesión de terminal: comando + salida, en una ventana con título.
+     Uso:  {{< terminal cmd="hpintel ip 1.2.3.4 --deep" title="reputación" max="20" >}}
+           ...salida tal cual...
+           {{< /terminal >}}
+     - cmd:    comando (opcional; sin él, solo salida). Se copia con el botón.
+     - prompt: prompt decorativo (default `$`, no se copia).
+     - title:  texto de la barra de la ventana (opcional).
+     - max:    líneas visibles; el resto queda plegado en un <details> (sin JS).
+     La salida va literal (sin markdown); el motor de plantillas la escapa. */}}
+{{- $prompt := (.Get "prompt") | default "$" -}}
+{{- $cmd := .Get "cmd" -}}
+{{- $title := .Get "title" -}}
+{{- $max := int ((.Get "max") | default "0") -}}
+{{- $out := trim .Inner "\n" -}}
+{{- $lines := split $out "\n" -}}
+<figure class="term-block">
+  <div class="term-bar" aria-hidden="{{ if $title }}false{{ else }}true{{ end }}">
+    <span class="term-dots"><i></i><i></i><i></i></span>
+    {{- with $title }}<span class="term-title">{{ . }}</span>{{ end -}}
+  </div>
+  {{- with $cmd }}
+  <div class="term-cmd">
+    <span class="cmd-prompt" aria-hidden="true">{{ $prompt }}</span>
+    <code class="cmd-code">{{ . }}</code>
+    <button class="cmd-copy" type="button" title="Copiar al portapapeles" aria-label="Copiar comando">⧉ copiar</button>
+  </div>
+  {{- end }}
+  {{- if $out }}
+  {{- if and (gt $max 0) (gt (len $lines) $max) }}
+  <pre class="term-out">{{ delimit (first $max $lines) "\n" }}</pre>
+  <details class="term-more">
+    <summary>{{ sub (len $lines) $max }} líneas más</summary>
+    <pre class="term-out">{{ delimit (after $max $lines) "\n" }}</pre>
+  </details>
+  {{- else }}
+  <pre class="term-out">{{ $out }}</pre>
+  {{- end }}
+  {{- end }}
+</figure>
+{{- if and $cmd (not (.Page.Store.Get "hasCmd")) -}}
+{{- .Page.Store.Set "hasCmd" true -}}
+<script>
+document.addEventListener('click', function(e){
+  var btn = e.target.closest('.cmd-copy');
+  if (!btn) return;
+  var code = btn.parentElement.querySelector('.cmd-code');
+  if (!code || !navigator.clipboard) return;
+  navigator.clipboard.writeText(code.textContent).then(function(){
+    var prev = btn.textContent;
+    btn.textContent = '✓ copiado';
+    btn.classList.add('cmd-copy--ok');
+    setTimeout(function(){ btn.textContent = prev; btn.classList.remove('cmd-copy--ok'); }, 1400);
+  });
+});
+</script>
+{{- end -}}

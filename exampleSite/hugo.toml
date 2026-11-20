@@ -11,6 +11,10 @@ theme = "vulpine-marrow"
 
 enableRobotsTXT = true
 
+# "JSON" genera /index.json, el índice de la búsqueda (/buscar/).
+[outputs]
+  home = ["HTML", "RSS", "JSON"]
+
 [permalinks]
   posts = "/posts/:contentbasename/"
 
@@ -63,7 +67,13 @@ enableRobotsTXT = true
   weight = 2
 
 [[menu.main]]
+  identifier = "portafolio"
+  name = "portafolio"
+  url = "/portafolio"
+  weight = 3
+
+[[menu.main]]
   identifier = "synapsis"
   name = "synapsis"
   url = "/synapsis"
-  weight = 3
+  weight = 4

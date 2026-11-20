@@ -2,13 +2,21 @@
 // por año sobre el grafo y el índice cronológico. Solo actúa en /synapsis/.
 //
 // Datos: #syn-graph-data (lo emite layouts/_default/synapsis.html)
-//   nodes: [{ t: título, u: url, y: año, d: fecha, in: citas entrantes }]
+//   nodes: [{ t: título, u: url, y: grupo del filtro (año), d: texto del
+//             tooltip (fecha), in: citas entrantes, g?: grupo de color 0–9 }]
 //   links: [origen, destino, tipo, origen, destino, tipo, …] — tripletas planas
 //          (append de Hugo aplana slices); tipo 1 = cita, 0 = afinidad
-// El layout se calcula una sola vez, de forma determinista (mismo grafo →
-// mismo dibujo), antes de pintar. El filtro por año no recalcula nada:
-// atenúa lo que queda fuera y encuadra lo que queda dentro, así el mapa
-// mental del lector se conserva entre años.
+//
+// Rendimiento:
+// - El layout se calcula una vez, determinista (mismo grafo → mismo dibujo),
+//   con arreglos tipados, y se guarda en localStorage con una clave que
+//   depende de los datos: desde la segunda visita no se recalcula.
+// - Pan/zoom en vivo mueven el <svg> con un transform CSS (lo compone la
+//   GPU, sin repintar); al terminar el gesto se aplica la vista al SVG una
+//   sola vez y se recolocan las etiquetas.
+// - El hover solo toca la nota, sus vecinas y sus aristas.
+// El filtro por año no recalcula nada: atenúa lo que queda fuera y encuadra
+// lo que queda dentro, así el mapa mental del lector se conserva entre años.
 (function () {
   'use strict';
 
@@ -26,26 +34,34 @@
     });
   }
 
+  var raw = dataEl ? dataEl.textContent : '';
   var data = null;
-  try { data = JSON.parse(dataEl ? dataEl.textContent : 'null'); } catch (e) { data = null; }
+  try { data = JSON.parse(raw || 'null'); } catch (e) { data = null; }
   if (!root || !data || !data.nodes || !data.nodes.length) {
     if (years && window.vmYearFilter) window.vmYearFilter(years, applyIndex);
     return;
   }
 
+  // El grafo se arma después del primer pintado: la página aparece y
+  // responde antes, y el grafo entra con su fundido (.is-ready).
+  requestAnimationFrame(function () { setTimeout(init, 0); });
+
+  function init() {
   var nodes = data.nodes.map(function (n, i) {
-    return { i: i, t: n.t, u: n.u, y: n.y, d: n.d, inc: n.in || 0, hub: false, deg: 0, cites: 0, aff: 0,
-             x: 0, y2: 0, vx: 0, vy: 0, nb: {} };
+    return { i: i, t: n.t, u: n.u, y: n.y, d: n.d, g: n.g, inc: n.in || 0, hub: false,
+             deg: 0, cites: 0, aff: 0, x: 0, y2: 0, nb: {}, ls: [] };
   });
-  var flat = data.links || [], triples = [];
-  for (var q = 0; q + 2 < flat.length; q += 3) triples.push([flat[q], flat[q + 1], flat[q + 2]]);
-  var links = triples.map(function (l) {
-    var s = nodes[l[0]], t = nodes[l[1]];
+  var flat = data.links || [], links = [];
+  for (var q = 0; q + 2 < flat.length; q += 3) {
+    var s = nodes[flat[q]], t = nodes[flat[q + 1]], cite = !!flat[q + 2];
+    if (!s || !t) continue;
+    var l = { s: s, t: t, cite: cite };
     s.deg++; t.deg++;
-    if (l[2]) { s.cites++; t.cites++; } else { s.aff++; t.aff++; }
+    if (cite) { s.cites++; t.cites++; } else { s.aff++; t.aff++; }
     s.nb[t.i] = true; t.nb[s.i] = true;
-    return { s: s, t: t, cite: !!l[2] };
-  });
+    s.ls.push(l); t.ls.push(l);
+    links.push(l);
+  }
   // hub = de las más citadas (≥3 citas entrantes y en el ~12 % superior);
   // con "citada 2 veces" casi medio grafo era hub y nada destacaba
   var incs = nodes.map(function (n) { return n.inc; }).sort(function (a, b) { return b - a; });
@@ -55,71 +71,96 @@
     n.r = 3 + Math.sqrt(n.deg) * 1.6 + (n.hub ? 2 : 0);
   });
 
-  // ── Layout de fuerzas (repulsión + resortes + gravedad + colisión) ──
-  // Arranca en una espiral de Fermat (determinista) y enfría en N ticks.
+  // ── Layout de fuerzas (repulsión + colisión, resortes, gravedad) ──
+  // Arranca en una espiral de Fermat (determinista) y enfría en TICKS pasos.
+  // Arreglos tipados y bucles planos: ~4× más rápido que objetos + forEach.
   function layout() {
-    var n = nodes.length, golden = Math.PI * (3 - Math.sqrt(5));
-    nodes.forEach(function (d, i) {
-      var r = 12 * Math.sqrt(i + 0.5), a = i * golden;
-      d.x = r * Math.cos(a); d.y2 = r * Math.sin(a);
-    });
-    var TICKS = 360, alpha = 1, decay = 1 - Math.pow(0.001, 1 / TICKS);
-    for (var k = 0; k < TICKS; k++) {
-      // repulsión entre todos los pares (n ≈ 100–300: O(n²) sobra)
-      for (var i = 0; i < n; i++) {
-        var a = nodes[i];
-        for (var j = i + 1; j < n; j++) {
-          var b = nodes[j];
-          var dx = b.x - a.x, dy = b.y2 - a.y2, d2 = dx * dx + dy * dy || 0.01;
-          if (d2 > 160000) continue;                   // > 400 u: despreciable
-          var f = -120 * alpha / d2;
-          a.vx += dx * f; a.vy += dy * f;
-          b.vx -= dx * f; b.vy -= dy * f;
-        }
-      }
-      // resortes: las citas tiran más corto que la afinidad
-      links.forEach(function (l) {
-        var s = l.s, t = l.t;
-        var dx = t.x + t.vx - s.x - s.vx, dy = t.y2 + t.vy - s.y2 - s.vy;
-        var dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
-        var want = l.cite ? 48 : 74;
-        var str = (l.cite ? 0.9 : 0.5) / Math.min(s.deg, t.deg);
-        var f = (dist - want) / dist * alpha * str;
-        dx *= f; dy *= f;
-        var bias = s.deg / (s.deg + t.deg);
-        t.vx -= dx * bias; t.vy -= dy * bias;
-        s.vx += dx * (1 - bias); s.vy += dy * (1 - bias);
-      });
-      // gravedad suave hacia el centro (mantiene juntas las islas sueltas);
-      // más fuerte en vertical para que el dibujo salga apaisado, como el marco
-      nodes.forEach(function (d) { d.vx -= d.x * 0.007 * alpha; d.vy -= d.y2 * 0.016 * alpha; });
-      // colisión: que los círculos no se monten
+    var n = nodes.length, m = links.length, golden = Math.PI * (3 - Math.sqrt(5));
+    var X = new Float64Array(n), Y = new Float64Array(n), VX = new Float64Array(n), VY = new Float64Array(n);
+    var R = new Float64Array(n), DEG = new Float64Array(n);
+    var LS = new Int32Array(m), LT = new Int32Array(m);
+    var WANT = new Float64Array(m), STR = new Float64Array(m), BIAS = new Float64Array(m);
+    var i, j, k;
+    for (i = 0; i < n; i++) {
+      var r0 = 12 * Math.sqrt(i + 0.5), a0 = i * golden;
+      X[i] = r0 * Math.cos(a0); Y[i] = r0 * Math.sin(a0);
+      R[i] = nodes[i].r; DEG[i] = nodes[i].deg;
+    }
+    for (k = 0; k < m; k++) {
+      var L = links[k], ds = L.s.deg, dt = L.t.deg;
+      LS[k] = L.s.i; LT[k] = L.t.i;
+      WANT[k] = L.cite ? 48 : 74;                    // las citas tiran más corto
+      STR[k] = (L.cite ? 0.9 : 0.5) / Math.min(ds, dt);
+      BIAS[k] = ds / (ds + dt);
+    }
+    var TICKS = 240, alpha = 1, decay = 1 - Math.pow(0.001, 1 / TICKS);
+    for (var tick = 0; tick < TICKS; tick++) {
+      // repulsión y colisión en una sola pasada por pares (corte a 400 u)
       for (i = 0; i < n; i++) {
-        a = nodes[i];
+        var xi = X[i], yi = Y[i], ri = R[i], fxi = 0, fyi = 0;
         for (j = i + 1; j < n; j++) {
-          b = nodes[j];
-          var min = a.r + b.r + 3;
-          dx = b.x - a.x; dy = b.y2 - a.y2;
-          var dd = dx * dx + dy * dy;
-          if (dd < min * min) {
-            var dist2 = Math.sqrt(dd) || 0.01, push = (min - dist2) / dist2 * 0.5;
-            a.x -= dx * push; a.y2 -= dy * push;
-            b.x += dx * push; b.y2 += dy * push;
+          var dx = X[j] - xi, dy = Y[j] - yi, d2 = dx * dx + dy * dy;
+          if (d2 > 160000) continue;
+          if (d2 < 0.01) d2 = 0.01;
+          var f = -120 * alpha / d2;
+          var min = ri + R[j] + 3;
+          if (d2 < min * min) {                         // se montan: separar
+            var d = Math.sqrt(d2);
+            f -= (min - d) / d * 0.5;
           }
+          fxi += dx * f; fyi += dy * f;
+          VX[j] -= dx * f; VY[j] -= dy * f;
         }
+        VX[i] += fxi; VY[i] += fyi;
       }
-      nodes.forEach(function (d) {
-        d.vx *= 0.6; d.vy *= 0.6;
-        d.x += d.vx; d.y2 += d.vy;
-      });
+      for (k = 0; k < m; k++) {
+        var si = LS[k], ti = LT[k];
+        var lx = X[ti] + VX[ti] - X[si] - VX[si], ly = Y[ti] + VY[ti] - Y[si] - VY[si];
+        var dist = Math.sqrt(lx * lx + ly * ly) || 0.01;
+        var fl = (dist - WANT[k]) / dist * alpha * STR[k], b = BIAS[k];
+        lx *= fl; ly *= fl;
+        VX[ti] -= lx * b; VY[ti] -= ly * b;
+        VX[si] += lx * (1 - b); VY[si] += ly * (1 - b);
+      }
+      // gravedad suave al centro (junta las islas sueltas); más fuerte en
+      // vertical para que el dibujo salga apaisado, como el marco
+      for (i = 0; i < n; i++) {
+        VX[i] = (VX[i] - X[i] * 0.007 * alpha) * 0.6;
+        VY[i] = (VY[i] - Y[i] * 0.016 * alpha) * 0.6;
+        X[i] += VX[i]; Y[i] += VY[i];
+      }
       alpha += (0 - alpha) * decay;
     }
+    var out = new Array(n * 2);
+    for (i = 0; i < n; i++) { out[i * 2] = Math.round(X[i] * 10) / 10; out[i * 2 + 1] = Math.round(Y[i] * 10) / 10; }
+    return out;
   }
-  layout();
+
+  // caché del layout: la clave cambia si cambian los datos o el algoritmo
+  function hash(str) {
+    var h = 0x811c9dc5;
+    for (var c = 0; c < str.length; c++) { h ^= str.charCodeAt(c); h = Math.imul(h, 0x01000193); }
+    return (h >>> 0).toString(36);
+  }
+  var cacheKey = 'vm-syn:2:' + hash(raw);
+  var pos = null;
+  try {
+    pos = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+    if (!pos || pos.length !== nodes.length * 2) pos = null;
+  } catch (e) { pos = null; }
+  if (!pos) {
+    pos = layout();
+    try {
+      for (var key in localStorage) if (key.indexOf('vm-syn:') === 0 && key !== cacheKey) localStorage.removeItem(key);
+      localStorage.setItem(cacheKey, JSON.stringify(pos));
+    } catch (e) { /* sin almacenamiento: se recalcula la próxima vez */ }
+  }
   // marco vertical (móvil): se transpone el dibujo para que lo llene
-  if (root.clientWidth < root.clientHeight * 1.1) {
-    nodes.forEach(function (d) { var t = d.x; d.x = d.y2; d.y2 = t; });
-  }
+  var portrait = root.clientWidth < root.clientHeight * 1.1;
+  nodes.forEach(function (d, i) {
+    d.x = portrait ? pos[i * 2 + 1] : pos[i * 2];
+    d.y2 = portrait ? pos[i * 2] : pos[i * 2 + 1];
+  });
 
   // ── SVG ──
   function el(tag, attrs, parent) {
@@ -135,11 +176,6 @@
   var mk = el('marker', { id: 'syn-arrow', viewBox: '0 0 10 10', refX: '9', refY: '5',
     markerWidth: '5', markerHeight: '5', orient: 'auto-start-reverse' }, defs);
   el('path', { d: 'M0,1 L9,5 L0,9 z', class: 'syn-arrow' }, mk);
-  var glow = el('filter', { id: 'syn-glow', x: '-100%', y: '-100%', width: '300%', height: '300%' }, defs);
-  el('feGaussianBlur', { stdDeviation: '3', result: 'b' }, glow);
-  var fm = el('feMerge', {}, glow);
-  el('feMergeNode', { in: 'b' }, fm);
-  el('feMergeNode', { in: 'SourceGraphic' }, fm);
 
   var vp = el('g', { class: 'syn-vp' }, svg);
   var gLinks = el('g', { class: 'syn-links' }, vp);
@@ -158,7 +194,10 @@
   nodes.forEach(function (n) {
     var a = el('a', { href: n.u, class: 'syn-node' + (n.hub ? ' is-hub' : ''),
       transform: 'translate(' + n.x.toFixed(1) + ',' + n.y2.toFixed(1) + ')',
-      'aria-label': n.t + ' (' + n.d + ')' }, gNodes);
+      'aria-label': n.t + (n.d ? ' (' + n.d + ')' : '') }, gNodes);
+    if (n.g != null) a.setAttribute('data-g', n.g);
+    // halo en vez de filtro SVG: un filtro se re-rasteriza en cada fotograma
+    if (n.hub) el('circle', { r: (n.r + 5).toFixed(1), class: 'syn-halo' }, a);
     el('circle', { r: n.r.toFixed(1), class: 'syn-dot' }, a);
     var tx = el('text', { class: 'syn-label', y: (n.r + 2).toFixed(1), dy: '1em' }, a);
     n.lbl = short(n.t, 28);
@@ -170,51 +209,71 @@
   // prioridad de etiqueta: las más citadas primero
   var ranked = nodes.slice().sort(function (a, b) { return b.inc - a.inc || b.deg - a.deg; });
 
-  // ── Vista: zoom y desplazamiento ──
-  var W = 0, H = 0, view = { k: 1, x: 0, y: 0 }, anim = 0, baseK = 1;
+  // ── Vista ──
+  // `cv` es la vista aplicada al SVG; `view`, la vista en curso. Durante un
+  // gesto solo cambia `view` y la diferencia se muestra con un transform CSS.
+  var W = 0, H = 0, anim = 0, baseK = 1;
+  var view = { k: 1, x: 0, y: 0 }, cv = { k: 1, x: 0, y: 0 };
   var MIN_K = 0.2, MAX_K = 6;
 
   function size() {
     W = root.clientWidth; H = root.clientHeight;
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
   }
-  function paint() {
-    vp.setAttribute('transform', 'translate(' + view.x.toFixed(2) + ',' + view.y.toFixed(2) + ') scale(' + view.k.toFixed(4) + ')');
-    // texto y trazos a tamaño constante en pantalla
-    gNodes.style.fontSize = (11 / view.k) + 'px';
-    root.style.setProperty('--syn-k', view.k);
-    if (!lblQueued) { lblQueued = true; requestAnimationFrame(placeLabels); }
+  var live = 0, idle = 0;
+  function show() {                                 // vista en curso, vía CSS
+    if (!live) live = requestAnimationFrame(function () {
+      live = 0;
+      var s = view.k / cv.k;
+      svg.style.transform = 'translate(' + (view.x - s * cv.x).toFixed(2) + 'px,' + (view.y - s * cv.y).toFixed(2) + 'px) scale(' + s.toFixed(4) + ')';
+      root.classList.add('is-moving');
+    });
   }
+  function commit() {                               // aplica la vista al SVG
+    cancelAnimationFrame(live); live = 0;
+    clearTimeout(idle);
+    var zoomed = view.k !== cv.k;
+    cv = { k: view.k, x: view.x, y: view.y };
+    vp.setAttribute('transform', 'translate(' + cv.x.toFixed(2) + ',' + cv.y.toFixed(2) + ') scale(' + cv.k.toFixed(4) + ')');
+    svg.style.transform = '';
+    root.classList.remove('is-moving');
+    // texto a tamaño constante en pantalla (solo cambia con el zoom)
+    if (zoomed || !gNodes.style.fontSize) gNodes.style.fontSize = (11 / cv.k) + 'px';
+    placeLabels();
+  }
+  function settle() { clearTimeout(idle); idle = setTimeout(commit, 160); }
 
   // Etiquetas fijas sin choques: de lejos solo las 7 notas más citadas de lo
   // visible; de cerca (o con pocas notas en el año) todas las que quepan.
   // Colocación voraz por prioridad, con cajas estimadas (Fira Code ≈ .62em).
-  var lblQueued = false;
   function placeLabels() {
-    lblQueued = false;
-    var close = view.k >= baseK * 2.2;
+    var close = cv.k >= baseK * 2.2;
     var all = close || (core !== nodes && core.length <= 24);
     var budget = all ? Infinity : 7, placed = [];
-    ranked.forEach(function (n) {
-      var ok = false;
-      if (budget > 0 && n.el.getAttribute('data-out') == null && (close || !n.el.classList.contains('is-edge'))) {
-        var sx = view.x + n.x * view.k, sy = view.y + n.y2 * view.k;
+    for (var r = 0; r < ranked.length; r++) {
+      var n = ranked[r], ok = false;
+      if (budget > 0 && !n.out && (close || !n.edge)) {
+        var sx = cv.x + n.x * cv.k, sy = cv.y + n.y2 * cv.k;
         var w = n.lbl.length * 6.9 + 6, h = 15;
-        var box = { x: sx - w / 2, y: sy + n.r * view.k + 2, w: w, h: h };
-        var anchor = 'middle';
-        if (box.x < 4) { anchor = 'start'; box.x = sx - 4; }
-        else if (box.x + w > W - 44) { anchor = 'end'; box.x = sx - w + 4; }   // 44: columna de botones
-        ok = sx > -20 && sx < W + 20 && sy > -20 && sy < H + 20 && placed.every(function (p) {
-          return box.x > p.x + p.w || box.x + box.w < p.x || box.y > p.y + p.h || box.y + box.h < p.y;
-        });
+        var bx = sx - w / 2, by = sy + n.r * cv.k + 2, anchor = 'middle';
+        if (bx < 4) { anchor = 'start'; bx = sx - 4; }
+        else if (bx + w > W - 44) { anchor = 'end'; bx = sx - w + 4; }   // 44: columna de botones
+        ok = sx > -20 && sx < W + 20 && sy > -20 && sy < H + 20;
+        for (var p = 0; ok && p < placed.length; p++) {
+          var o = placed[p];
+          if (!(bx > o.x + o.w || bx + w < o.x || by > o.y + o.h || by + h < o.y)) ok = false;
+        }
         if (ok) {
-          placed.push(box); budget--;
-          n.txt.setAttribute('text-anchor', anchor);
-          n.txt.setAttribute('x', anchor === 'middle' ? 0 : (anchor === 'start' ? -n.r : n.r));
+          placed.push({ x: bx, y: by, w: w, h: h }); budget--;
+          if (n.anchor !== anchor) {
+            n.anchor = anchor;
+            n.txt.setAttribute('text-anchor', anchor);
+            n.txt.setAttribute('x', anchor === 'middle' ? 0 : (anchor === 'start' ? -n.r : n.r));
+          }
         }
       }
-      n.el.classList.toggle('is-lbl', ok);
-    });
+      if (n.lblOn !== ok) { n.lblOn = ok; n.el.classList.toggle('is-lbl', ok); }
+    }
   }
   function bounds(list) {
     var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
@@ -232,31 +291,31 @@
   }
   function goTo(t, instant) {
     cancelAnimationFrame(anim);
-    if (instant || reduceMotion) { view = t; paint(); return; }
+    if (instant || reduceMotion) { view = t; commit(); return; }
     var from = { k: view.k, x: view.x, y: view.y }, t0 = performance.now(), dur = 420;
     (function step(now) {
       var p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
       view = { k: from.k + (t.k - from.k) * e, x: from.x + (t.x - from.x) * e, y: from.y + (t.y - from.y) * e };
-      paint();
-      if (p < 1) anim = requestAnimationFrame(step);
+      if (p < 1) { show(); anim = requestAnimationFrame(step); } else commit();
     })(t0);
   }
   function zoomAt(f, px, py) {
     cancelAnimationFrame(anim);
     var k = Math.max(MIN_K, Math.min(MAX_K, view.k * f)), r = k / view.k;
     view = { k: k, x: px - r * (px - view.x), y: py - r * (py - view.y) };
-    paint();
+    show();
   }
+  // coordenadas locales del marco (no del <svg>, que se mueve en los gestos)
   function local(e) {
-    var r = svg.getBoundingClientRect();
-    return { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) };
+    var r = root.getBoundingClientRect();
+    return { x: e.clientX - r.left - root.clientLeft, y: e.clientY - r.top - root.clientTop };
   }
 
   var shown = nodes, core = nodes;   // visibles (año + vecinas) / solo las del año
   function fit(instant) { baseK = target(nodes).k; goTo(target(core), instant); }
 
   // rueda: solo con Ctrl/⌘ (o en pantalla completa) para no secuestrar el scroll
-  svg.addEventListener('wheel', function (e) {
+  root.addEventListener('wheel', function (e) {
     if (!(e.ctrlKey || e.metaKey || root.classList.contains('is-full'))) {
       root.classList.add('show-hint');
       clearTimeout(root._hint);
@@ -266,17 +325,20 @@
     e.preventDefault();
     var p = local(e);
     zoomAt(Math.exp(-e.deltaY * 0.0022), p.x, p.y);
+    settle();
   }, { passive: false });
 
-  // arrastre (pan) y pellizco (zoom) con pointer events
+  // Arrastre (pan) y pellizco (zoom) con pointer events. El puntero se
+  // captura recién cuando el gesto pasa de 4 px: capturarlo al apretar
+  // desviaba el clic al <svg> y los nodos dejaban de abrir su post.
   var ptrs = new Map(), moved = false, last = null, pinch = 0;
-  svg.addEventListener('pointerdown', function (e) {
-    if (e.button !== 0) return;
-    ptrs.set(e.pointerId, local(e));
-    moved = false; last = local(e); pinch = 0;
-    svg.setPointerCapture(e.pointerId);
+  root.addEventListener('pointerdown', function (e) {
+    if (e.button !== 0 || e.target.closest('.syn-tools')) return;
+    var p = local(e);
+    ptrs.set(e.pointerId, p);
+    moved = false; last = p; pinch = 0;
   });
-  svg.addEventListener('pointermove', function (e) {
+  root.addEventListener('pointermove', function (e) {
     if (!ptrs.has(e.pointerId)) return;
     var p = local(e);
     ptrs.set(e.pointerId, p);
@@ -288,58 +350,76 @@
       return;
     }
     var dx = p.x - last.x, dy = p.y - last.y;
-    if (!moved && Math.hypot(dx, dy) < 4) return;
-    moved = true;
-    root.classList.add('is-panning');
+    if (!moved) {
+      if (Math.hypot(dx, dy) < 4) return;
+      moved = true;
+      try { root.setPointerCapture(e.pointerId); } catch (err) { /* puntero ya liberado */ }
+      root.classList.add('is-panning');
+      hideFocus();
+    }
     cancelAnimationFrame(anim);
     view.x += dx; view.y += dy; last = p;
-    paint();
+    show();
   });
   function up(e) {
-    ptrs.delete(e.pointerId);
+    if (!ptrs.delete(e.pointerId)) return;
     if (ptrs.size < 2) pinch = 0;
     if (ptrs.size === 1) last = ptrs.values().next().value;
-    if (!ptrs.size) root.classList.remove('is-panning');
+    if (!ptrs.size) {
+      root.classList.remove('is-panning');
+      if (moved) commit();
+    }
   }
-  svg.addEventListener('pointerup', up);
-  svg.addEventListener('pointercancel', up);
+  root.addEventListener('pointerup', up);
+  root.addEventListener('pointercancel', up);
+  // los nodos son <a>: sin esto, arrastrar desde uno inicia el
+  // "arrastrar enlace" nativo del navegador en vez de mover el grafo
+  root.addEventListener('dragstart', function (e) { e.preventDefault(); });
   // un arrastre que termina sobre un nodo no debe abrirlo
-  svg.addEventListener('click', function (e) { if (moved) { e.preventDefault(); moved = false; } }, true);
+  root.addEventListener('click', function (e) { if (moved) { e.preventDefault(); moved = false; } }, true);
 
   // ── Hover / foco: resalta la nota, sus vecinas y sus aristas ──
-  var tip = root.querySelector('.syn-tip');
-  function focus(n) {
-    root.classList.add('is-focus');
-    nodes.forEach(function (m) {
-      m.el.classList.toggle('is-on', m === n);
-      m.el.classList.toggle('is-nb', !!n.nb[m.i]);
+  // Solo se marcan esas piezas (el resto se atenúa con una clase en el marco).
+  var tip = root.querySelector('.syn-tip'), lit = null;
+  function mark(n, on) {
+    n.el.classList.toggle('is-on', on);
+    n.ls.forEach(function (l) {
+      l.el.classList.toggle('is-on', on);
+      (l.s === n ? l.t : l.s).el.classList.toggle('is-nb', on);
     });
-    links.forEach(function (l) { l.el.classList.toggle('is-on', l.s === n || l.t === n); });
+  }
+  function focus(n) {
+    if (lit === n) return;
+    if (lit) mark(lit, false);
+    lit = n; mark(n, true);
+    root.classList.add('is-focus');
     var parts = [];
     if (n.cites) parts.push(n.cites + (n.cites === 1 ? ' cita' : ' citas'));
     if (n.aff) parts.push(n.aff + ' por afinidad');
-    tip.innerHTML = '';
+    tip.textContent = '';
     var b = document.createElement('strong'); b.textContent = n.t; tip.appendChild(b);
-    var s = document.createElement('span'); s.textContent = n.d + (parts.length ? ' · ' + parts.join(' · ') : ''); tip.appendChild(s);
+    var info = (n.d ? [n.d] : []).concat(parts).join(' · ');
+    if (info) { var s = document.createElement('span'); s.textContent = info; tip.appendChild(s); }
     tip.hidden = false;
-    var r = svg.getBoundingClientRect(), rr = root.getBoundingClientRect();
-    var sx = (view.x + n.x * view.k) * (r.width / W) + (r.left - rr.left);
-    var sy = (view.y + n.y2 * view.k) * (r.height / H) + (r.top - rr.top);
+    var sx = view.x + n.x * view.k, sy = view.y + n.y2 * view.k;
     var tw = tip.offsetWidth;
-    tip.style.left = Math.max(8, Math.min(rr.width - tw - 8, sx - tw / 2)) + 'px';
+    tip.style.left = Math.max(8, Math.min(W - tw - 8, sx - tw / 2)) + 'px';
     tip.style.top = Math.max(8, sy - n.r * view.k - tip.offsetHeight - 10) + 'px';
   }
-  function blur() {
+  function hideFocus() {
+    if (lit) { mark(lit, false); lit = null; }
     root.classList.remove('is-focus');
-    nodes.forEach(function (m) { m.el.classList.remove('is-on', 'is-nb'); });
-    links.forEach(function (l) { l.el.classList.remove('is-on'); });
     tip.hidden = true;
   }
   nodes.forEach(function (n) {
-    n.el.addEventListener('pointerenter', function (e) { if (e.pointerType !== 'touch' && !ptrs.size) focus(n); });
-    n.el.addEventListener('pointerleave', blur);
-    n.el.addEventListener('focus', function () { focus(n); });
-    n.el.addEventListener('blur', blur);
+    // sin hover con un botón apretado: atenuar ~700 piezas a mitad de un
+    // arrastre dispara repintados en cada fotograma
+    n.el.addEventListener('pointerenter', function (e) { if (e.pointerType !== 'touch' && !e.buttons && !ptrs.size) focus(n); });
+    n.el.addEventListener('pointerleave', function () { if (lit === n) hideFocus(); });
+    // solo el foco de teclado: un clic también enfoca el <a>, y resaltar ahí
+    // dispararía el atenuado justo al empezar un arrastre
+    n.el.addEventListener('focus', function () { if (n.el.matches(':focus-visible')) focus(n); });
+    n.el.addEventListener('blur', function () { if (lit === n) hideFocus(); });
   });
 
   // ── Controles ──
@@ -347,8 +427,8 @@
     var b = e.target.closest('button');
     if (!b) return;
     var act = b.getAttribute('data-act');
-    if (act === 'in') zoomAt(1.35, W / 2, H / 2);
-    else if (act === 'out') zoomAt(1 / 1.35, W / 2, H / 2);
+    if (act === 'in') { zoomAt(1.35, W / 2, H / 2); settle(); }
+    else if (act === 'out') { zoomAt(1 / 1.35, W / 2, H / 2); settle(); }
     else if (act === 'fit') fit();
     else if (act === 'full') toggleFull();
   });
@@ -356,17 +436,18 @@
     var on = force != null ? force : !root.classList.contains('is-full');
     root.classList.toggle('is-full', on);
     document.documentElement.classList.toggle('vm-lightbox-open', on);   // bloquea el scroll
-    size(); fit(true);
   }
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && root.classList.contains('is-full')) toggleFull(false);
   });
 
-  var rt;
-  window.addEventListener('resize', function () {
-    clearTimeout(rt);
-    rt = setTimeout(function () { size(); fit(true); }, 120);
-  });
+  // cambios de tamaño del marco (ventana, pantalla completa): re-encuadrar
+  function onResize() {
+    if (root.hidden || (root.clientWidth === W && root.clientHeight === H)) return;
+    size(); fit(true);
+  }
+  if (window.ResizeObserver) new ResizeObserver(onResize).observe(root);
+  else window.addEventListener('resize', onResize);
 
   // ── Filtro por año: atenuar fuera del año, encuadrar lo de dentro ──
   function applyGraph(year, instant) {
@@ -384,10 +465,12 @@
     root.hidden = none;
     if (empty) empty.hidden = !none;
     if (none) return;
+    if (!W) size();
     nodes.forEach(function (n) {
-      n.el.classList.toggle('is-out', !!year && !keep[n.i]);
-      if (year && !keep[n.i]) n.el.setAttribute('data-out', ''); else n.el.removeAttribute('data-out');
-      n.el.classList.toggle('is-edge', keep[n.i] === 2);   // vecina de otro año
+      n.out = !!year && !keep[n.i];
+      n.edge = keep[n.i] === 2;                        // vecina de otro año
+      n.el.classList.toggle('is-out', n.out);
+      n.el.classList.toggle('is-edge', n.edge);
     });
     links.forEach(function (l) { l.el.classList.toggle('is-out', !!year && !(keep[l.s.i] && keep[l.t.i])); });
     fit(instant);
@@ -403,4 +486,5 @@
   if (years && window.vmYearFilter) window.vmYearFilter(years, apply);
   else apply('');
   requestAnimationFrame(function () { root.classList.add('is-ready'); });
+  }
 })();

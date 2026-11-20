@@ -1,4 +1,4 @@
-/* ── Shortcodes Vulpine Marrow: command / figure / badge / tlp ──
+/* ── Shortcodes Vulpine Marrow: command / terminal / figure / badge / tlp ──
    Glow only on intent: borde hairline en reposo, glow al hover. */
 
 /* command — comando copiable (estilo CommandRow del DS) */
@@ -45,6 +45,79 @@
   box-shadow: 0 0 12px var(--vm-tint-15);
 }
 .cmd-copy--ok { color: var(--vm-green); border-color: var(--vm-green); }
+
+/* terminal — sesión de terminal: ventana + comando + salida (plegable) */
+.term-block {
+  margin: 20px 0;
+  width: auto;
+  background: var(--vm-code-bg);
+  border: 1px solid var(--vm-border);
+  border-radius: 8px;
+  overflow: hidden;
+  font-family: var(--vm-font-mono);
+  font-size: 0.85em;
+  transition: border-color .15s;
+}
+.term-block:hover { border-color: var(--vm-border-2); }
+.term-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: var(--vm-tint-08);
+  border-bottom: 1px solid var(--vm-border);
+}
+.term-dots { display: inline-flex; gap: 6px; flex: none; }
+.term-dots i {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--vm-border-2);
+}
+.term-dots i:first-child { background: var(--vm-accent); }
+.term-title {
+  color: var(--vm-text-2);
+  font-size: .92em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.term-cmd {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px 4px;
+}
+.term-cmd .cmd-code {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--vm-text-cmd);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.term-out {
+  margin: 0;
+  padding: 8px 12px 12px;
+  background: transparent;
+  border: 0;
+  color: var(--vm-text-1);
+  white-space: pre;
+  overflow-x: auto;
+  line-height: 1.45;
+}
+.term-more { border-top: 1px dashed var(--vm-border); }
+.term-more summary {
+  cursor: pointer;
+  padding: 6px 12px;
+  color: var(--vm-text-2);
+  font-size: .9em;
+  list-style: none;
+}
+.term-more summary::before { content: "▸ "; color: var(--vm-accent); }
+.term-more[open] summary::before { content: "▾ "; }
+.term-more summary:hover { color: var(--vm-accent-soft); }
+@media (max-width: 560px) {
+  .term-block { font-size: 0.78em; }
+  .term-cmd .cmd-copy { display: none; }
+}
 
 /* figure — imagen con caption + crédito */
 /* base pone `figure { width: fit-content }` sin margen automático, así que la

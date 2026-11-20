@@ -35,6 +35,12 @@
   display: block;
   width: 100%;
   height: 100%;
+  overflow: visible;          /* al arrastrar se ve lo que entra por el borde */
+  transform-origin: 0 0;
+  /* capa propia permanente: en un gesto el <svg> se mueve con transform CSS
+     y la GPU lo desplaza sin repintar; al soltar se redibuja nítido. Fija
+     (no solo durante el gesto) para no re-rasterizar al empezar cada uno */
+  will-change: transform;
   cursor: grab;
   opacity: 0;
   transition: opacity .5s ease;
@@ -46,26 +52,28 @@
 .syn-link {
   fill: none;
   vector-effect: non-scaling-stroke;
-  transition: opacity .2s, stroke .2s;
 }
 .syn-link--cite { stroke: var(--vm-accent); stroke-width: 1.2; opacity: .55; }
 .syn-link--aff  { stroke: var(--vm-text-3); stroke-width: 1; stroke-dasharray: 3 4; opacity: .45; }
 .syn-arrow { fill: var(--vm-accent); }
 
 /* nodos */
-.syn-node { cursor: pointer; outline: none; transition: opacity .2s; }
+/* sin transiciones en nodos/aristas: el foco atenúa cientos de piezas a la
+   vez y animarlas costaba un recálculo de estilos por fotograma */
+.syn-node { cursor: pointer; outline: none; }
 .syn-dot {
   fill: var(--vm-bg-3);
   stroke: var(--vm-accent);
   stroke-width: 1.4;
   vector-effect: non-scaling-stroke;
-  transition: fill .2s, stroke .2s;
 }
 .syn-node.is-hub .syn-dot {
   fill: var(--vm-purple);
   stroke: var(--vm-accent-soft);
-  filter: url(#syn-glow);
 }
+/* brillo de los hubs: círculo de halo (un filtro SVG costaría un
+   re-rasterizado por fotograma al mover el grafo) */
+.syn-halo { fill: var(--vm-purple); opacity: .18; stroke: none; }
 .syn-node:not(.is-hub) .syn-dot { fill-opacity: .9; }
 .syn-label {
   fill: var(--vm-text-2);
@@ -77,10 +85,38 @@
   stroke-linejoin: round;
   pointer-events: none;
   opacity: 0;
-  transition: opacity .2s;
 }
 .syn-node.is-lbl .syn-label { opacity: .9; }
 .syn-node.is-hub .syn-label { fill: var(--vm-text-1); }
+
+/* grupos de color opcionales (data-g 0–9, p. ej. las Partes de Speculum),
+   ordenados para que grupos contiguos no compartan tono;
+   el blog no los emite y usa el violeta de siempre */
+:is(.syn-node, .syn-swatch)[data-g="0"] { --syn-c: var(--vm-purple); }
+:is(.syn-node, .syn-swatch)[data-g="1"] { --syn-c: var(--vm-pink); }
+:is(.syn-node, .syn-swatch)[data-g="2"] { --syn-c: var(--vm-yellow); }
+:is(.syn-node, .syn-swatch)[data-g="3"] { --syn-c: var(--vm-orange-2); }
+:is(.syn-node, .syn-swatch)[data-g="4"] { --syn-c: var(--vm-text-desc); }
+:is(.syn-node, .syn-swatch)[data-g="5"] { --syn-c: var(--vm-green); }
+:is(.syn-node, .syn-swatch)[data-g="6"] { --syn-c: var(--vm-accent-soft); }
+:is(.syn-node, .syn-swatch)[data-g="7"] { --syn-c: var(--vm-text-cmd); }
+:is(.syn-node, .syn-swatch)[data-g="8"] { --syn-c: var(--vm-red); }
+:is(.syn-node, .syn-swatch)[data-g="9"] { --syn-c: #6b8cff; }   /* azul: no hay token y el teal se confunde con el verde */
+.vm-light :is(.syn-node, .syn-swatch)[data-g="9"] { --syn-c: #3a5bd9; }
+.syn-node[data-g] .syn-dot { stroke: var(--syn-c); }
+.syn-node[data-g].is-hub .syn-dot,
+.syn-node[data-g] .syn-halo { fill: var(--syn-c); }
+.syn-node[data-g].is-hub .syn-dot { stroke: var(--vm-text-pure); stroke-opacity: .5; }
+/* muestra de color de un grupo (pastillas del filtro por Parte en Speculum) */
+.syn-swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--syn-c, var(--vm-purple));
+  vertical-align: 1px;
+}
 
 /* foco (hover / teclado): la nota y sus vecinas, el resto en penumbra */
 .syn-graph.is-focus .syn-node:not(.is-on):not(.is-nb) { opacity: .15; }
@@ -203,7 +239,7 @@
 .syn-key--aff { border-top: 1.5px dashed var(--vm-text-3); }
 
 @media (prefers-reduced-motion: reduce) {
-  .syn-svg, .syn-link, .syn-node, .syn-dot, .syn-label { transition: none; }
+  .syn-svg { transition: none; }
 }
 
 /* nube de tags — vocabulario del blog, tamaño = frecuencia */

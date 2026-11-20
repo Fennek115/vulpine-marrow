@@ -1,7 +1,7 @@
 // Filtro por año (partials/year-filter.html): estado + sincronía con ?y= en la URL.
 // Expone window.vmYearFilter(root, onChange) → devuelve { get() }.
 // Cada página decide qué hacer con el año (search.js filtra el índice,
-// synapsis.js poda el grafo y el índice cronológico).
+// synapsis.js atenúa el grafo y filtra el índice cronológico).
 (function () {
   'use strict';
 

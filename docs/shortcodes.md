@@ -16,6 +16,7 @@ only on intent».
 | `codice-list` | Lista capítulos por rango de `weight` |
 | `callout` | Aviso destacado (info/tip/warning/danger) |
 | `command` | Bloque de comando copiable |
+| `terminal` | Sesión de terminal: comando + salida, plegable |
 | `figure` | Imagen con caption + crédito |
 | `badge` | Etiqueta inline de color por token |
 | `tlp` | Banner Traffic Light Protocol |
@@ -108,6 +109,30 @@ solo el comando. El script de copia se inyecta una vez por página vía `Page.St
 {{< command prompt="PS>" >}}Get-Process | ? { $_.CPU -gt 100 }{{< /command >}}
 ```
 
+## terminal
+
+Sesión de terminal en una ventana: comando (opcional, copiable) y su salida tal
+cual. Pensado para mostrar consultas reales (p. ej. `hpintel`) sin reescribirlas.
+La salida no pasa por markdown y el motor de plantillas la escapa. Con `max`, las
+líneas que sobran quedan plegadas en un `<details>` nativo (sin JS). El botón de
+copiar reutiliza el script de `command` (se inyecta una vez por página).
+
+| Parámetro | Req. | Descripción |
+|-----------|------|-------------|
+| `cmd`     | no   | Comando mostrado tras el prompt (se copia con el botón) |
+| `prompt`  | no   | Prompt decorativo (default `$`, no se copia) |
+| `title`   | no   | Texto de la barra de la ventana |
+| `max`     | no   | Líneas visibles; el resto se pliega |
+| (interno) | no   | La salida |
+
+```text
+{{< terminal cmd="hpintel ip 203.0.113.7 --deep" title="reputación · 8 fuentes" max="12" >}}
+── 203.0.113.7 ─────────
+ abuseipdb   score 100/100 · 63 reportes
+ ...
+{{< /terminal >}}
+```
+
 ## figure
 
 Imagen con caption y crédito. Si `src` coincide con un recurso del page bundle lo
@@ -156,4 +181,4 @@ Banner TLP (Traffic Light Protocol). Solo banner o con nota interna.
 
 - Todo el color sale de tokens `--vm-*` (`assets/css/tokens/colors.css`), así que
   claro/oscuro se resuelven solos.
-- El CSS de `command`/`figure`/`badge`/`tlp` está en `assets/css/skin/07-shortcodes.css`.
+- El CSS de `command`/`terminal`/`figure`/`badge`/`tlp` está en `assets/css/skin/07-shortcodes.css`.

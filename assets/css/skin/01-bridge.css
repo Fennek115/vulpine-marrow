@@ -85,6 +85,26 @@ code {
   font-size: 0.95em;
 }
 
+/* `code` dentro de un enlace (p. ej. un hash que lleva a VirusTotal): sin
+   esto se ve idéntico a un `code` suelto. Subrayado punteado y borde en el
+   acento lo marcan como enlace; al pasar el cursor se rellena. */
+a code {
+  border-color: var(--accent);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+a:hover code {
+  background: rgba(145, 65, 172, 0.3);
+  text-decoration-style: solid;
+}
+
+/* en el índice (TOC) todo es enlace: no hace falta marcarlo */
+.table-of-contents a code {
+  border-color: rgba(145, 65, 172, 0.25);
+  text-decoration: none;
+}
+
 pre code {
   background: transparent !important;
   border: none;

@@ -22,8 +22,9 @@ Qué se heredó de Terminal (MIT, ver [`../LICENSE.md`](../LICENSE.md)):
 | CSS base | `assets/css/base/*.css` | reset, tipografía, code, syntax, etc. |
 | JS | `assets/js/{code,menu}.js` | botón de copia en bloques + menú móvil |
 
-Todo lo demás (single, list, term, index, 404, synapsis, los partials
-del garden, el header, los shortcodes y el *skin* CSS) es propio.
+Todo lo demás (single, list, term, index, 404, synapsis, search, las vistas
+print, informes y whitepapers, los partials del garden, el header, los
+shortcodes, el *skin* CSS y el resto del JS) es propio.
 
 ## Herencia de plantillas
 
@@ -55,7 +56,7 @@ base/{buttons,code,footer,gist,header,   ← Terminal, orden alfabético origina
       main,menu,pagination,post,syntax,
       terminal,terms}.css
         │
-skin/{01-bridge … 08-synapsis}.css       ← overrides Vulpine Marrow (ganan)
+skin/{01-bridge … 11-codice-svg}.css     ← overrides Vulpine Marrow (ganan)
         ↓
 /css/vm-bundle.<hash>.css                 ← un request, cacheable
 ```
@@ -81,11 +82,13 @@ relativa se rompería — por eso son la única excepción al bundle.
 relativa) sigue existiendo: lo enlazan los layouts *print* (`single.print`,
 `list.print`), que generan PDFs y no necesitan la optimización inline.
 
-### El *skin* está partido en 9
+### El *skin* está partido en 10
 
-`skin/01..09.css` son cortes contiguos del antiguo `static/style.css` (más el
-lightbox, agregado después). El número fija el orden de carga (se concatena en
-secuencia). Reparto:
+`skin/01..11.css` nacieron como cortes contiguos del antiguo `static/style.css`;
+del 09 en adelante son agregados posteriores. El número fija el orden de carga
+(se concatena en secuencia). El `04` no existe: era el estilo de la vieja
+sección del Códice, que se eliminó en 0.6.0 (lo que quedaba de `codice-list`
+pasó a `07-shortcodes.css`). Reparto:
 
 | Archivo | Contenido |
 |---------|-----------|
@@ -94,19 +97,50 @@ secuencia). Reparto:
 | `03-garden.css` | wikilinks + backlinks |
 | `05-elements.css` | blockquotes, hr, estilo base de tablas, scrollbar, selección, callouts, TOC, mermaid |
 | `06-header.css` | header de una fila, logo `dust115$`, botón de tema, menú |
-| `07-shortcodes.css` | command / figure (centrada) / badge / tlp / codice-list |
-| `08-synapsis.css` | página Synapsis |
+| `07-shortcodes.css` | command / terminal / figure (centrada) / badge / tlp / codice-list |
+| `08-synapsis.css` | página Synapsis (grafo de fuerzas, controles, leyenda, grupos de color `data-g`) |
 | `09-lightbox.css` | lightbox de imágenes/SVG/mermaid (overlay, barra, sombras) |
+| `10-portafolio-search.css` | landing del portafolio, buscador y filtro por año |
+| `11-codice-svg.css` | piezas del shortcode `codice-svg` (trazo desde los tokens) |
 
 ## Pipeline de JS
 
-`footer.html` concatena `js/menu.js` + `js/code.js` + `js/lightbox.js` (vía
-`js.Build`) en un `bundle.js` minificado **y con `fingerprint`** (el hash en el
-nombre invalida la caché del navegador cuando cambia el JS). `code.js` agrega el
-botón de copia a los bloques de código; `lightbox.js` da el visor de imágenes
-(ver *Features*); `menu.js` es el menú móvil de Terminal (inerte si no hay
-`.menu`, se conserva por compatibilidad). El resto del JS (toggle de tema,
-mermaid) lo maneja `extended_footer.html` inline.
+`footer.html` pasa cada script por `js.Build` y los concatena en un
+`bundle.js` minificado **y con `fingerprint`** (el hash en el nombre invalida la
+caché del navegador cuando cambia el JS), cargado con `defer`:
+
+| Script | Rol |
+|--------|-----|
+| `menu.js` | menú móvil de Terminal (inerte si no hay `.menu`, se conserva por compatibilidad) |
+| `code.js` | botón de copia en bloques de código (`command` y `terminal` traen su propio script inline) |
+| `lightbox.js` | visor de imágenes/SVG/mermaid (ver *Features*) |
+| `backtotop.js` | botón «subir al inicio» |
+| `yearfilter.js` | filtro por año compartido (`?y=`) |
+| `search.js` | motor de búsqueda (solo actúa si hay `.vm-search`) |
+| `synapsis.js` | grafo de Synapsis (solo actúa si hay `#syn-graph-data`) |
+
+Cada script sale temprano si su página no tiene el elemento que necesita, así
+que un solo bundle sirve a todo el sitio. El toggle de tema y la carga de
+mermaid (autohospedado, `static/vm/js/mermaid.min.js`) los maneja
+`extended_footer.html` inline.
+
+### Pipeline de impresión (PDF)
+
+Las vistas *print* (`_default/single.print.html`, `informes/list.print.html`,
+`whitepapers/single.print.html`) son documentos aparte que **no** usan el bundle
+del sitio. Cada una arma su propia hoja concatenando `assets/css/print/`
+(`report.css` + `collection.css` o `whitepaper.css`, según el caso) y su
+script:
+
+- `print-single.js` — post individual, impresión nativa del navegador.
+- `informe-doc.js` — informe combinado, ensamblado en el cliente y paginado
+  con Paged.js (`static/vm/js/paged.polyfill.min.js`).
+- `whitepaper-doc.js` — whitepaper, también con Paged.js.
+
+Los tres usan `print-keep.js` para no dejar títulos colgados al pie de la hoja.
+El print de un post carga mermaid con su propio `<script>`; el informe y el
+whitepaper lo inyectan bajo demanda (`window.VM_MERMAID_SRC`). La página `informes/list.html` (el
+constructor) usa `informes-builder.js`.
 
 ### Render hooks
 
@@ -115,6 +149,8 @@ mermaid) lo maneja `extended_footer.html` inline.
 - `render-codeblock-mermaid.html` — detecta los bloques ```` ```mermaid ````.
 - `render-table.html` — envuelve cada tabla en `<div class="table-wrap">` para
   el scroll horizontal responsive (ver *Features → Tablas*).
+- `render-link.html` — los enlaces a otro host abren en pestaña nueva con
+  `rel="noopener noreferrer"`; anclas y enlaces internos no cambian.
 
 ## Requisitos
 

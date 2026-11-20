@@ -106,6 +106,14 @@ una página. Arriba, un **filtro por año** (`partials/year-filter.html` +
    zoom, encuadrar y pantalla completa (Esc sale). El **filtro por año** no
    recalcula el layout: atenúa lo de otros años, deja las vecinas directas
    como contexto (borde punteado) y encuadra las notas del año.
+
+   Rendimiento: el layout se calcula con arreglos tipados después del primer
+   pintado y se cachea en `localStorage` (clave = hash de los datos; se
+   invalida sola si cambia el grafo). Pan y zoom en vivo mueven el `<svg>`
+   con un transform CSS en su propia capa y aplican la vista al soltar.
+   Cada nodo puede traer `g` (0–9): grupo de color (`data-g`, paleta de
+   tokens; `.syn-swatch` sirve de muestra para leyendas). El blog no lo usa;
+   Speculum colorea por Parte y filtra por Parte reusando `yearfilter.js`.
 2. **Nube de tags** del blog, dimensionada por frecuencia.
 3. **Índice cronológico**: los posts del blog (`Type == "posts"`) agrupados por
    año con `GroupByDate`; el filtro solo oculta los bloques de otros años.

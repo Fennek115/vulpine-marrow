@@ -4,13 +4,18 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-11-20
+
 ### Added
+- **Shortcode `terminal`**: sesión de terminal en ventana (barra con título,
+  comando copiable con prompt decorativo, salida literal escapada). `max="N"`
+  pliega las líneas sobrantes en un `<details>` nativo, sin JS; el botón de
+  copiar reutiliza el script de `command`. CSS en `skin/07-shortcodes.css`.
 - **Filtro por año** (`partials/year-filter.html` + `js/yearfilter.js`,
   sincronizado con `?y=`): en `/buscar` acota el índice antes de puntuar (y
-  con año elegido sin texto lista todo ese año); en Synapsis poda el grafo
-  mermaid (`js/synapsis.js`: nodos del año + vecinos directos, re-render vía
-  `__vmRenderMermaid`) y filtra el índice cronológico. `index.json` emite
-  `year` por entrada.
+  con año elegido sin texto lista todo ese año); en Synapsis atenúa lo que
+  queda fuera del año (nodos del año + vecinos directos), encuadra el resto
+  y filtra el índice cronológico. `index.json` emite `year` por entrada.
 - Params `codiceSeries` y `codiceIndex` (ver `docs/configuration.md`): el
   nombre de la serie-libro deja de estar hardcodeado en los partials. **Default
   vacío** → la feature de "serie fija" es opt-in; sin configurar, todas las
@@ -32,6 +37,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/).
   en móvil y colores desde los tokens (modo claro automático). El filtro por
   año atenúa y encuadra en vez de podar y redibujar. El grafo ya no abre el
   lightbox (tiene su propio zoom) ni carga mermaid.
+  Rendimiento: layout con arreglos tipados (~4× más rápido), cacheado en
+  `localStorage` por hash de los datos y armado después del primer pintado;
+  pan/zoom en vivo con transform CSS sobre una capa GPU (se aplica al SVG al
+  soltar); hover que solo toca la nota y sus vecinas, sin transiciones
+  masivas; halo en vez de filtro SVG; `ResizeObserver`. Grupos de color
+  opcionales por nodo (`g` en los datos → `data-g` 0–9, paleta desde los
+  tokens) y muestras `.syn-swatch` para leyendas o filtros.
 - **La serie del Códice ya no es una sección**: sus capítulos son posts
   normales identificados por `series`. Se elimina `layouts/codice/list.html`
   y `04-codice.css` (el estilo de `codice-list` pasa a `07-shortcodes.css`);
@@ -40,7 +52,18 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/).
   `related.html` y las aristas automáticas de Synapsis excluyen la serie en
   ambos sentidos.
 
+- **Documentación y demo al día**: README reescrito (características por
+  bloque, novedades, estructura), `docs/architecture.md` con el bundle JS
+  completo, el skin 01..11 y el pipeline de impresión, y `theme.toml` apunta a
+  fennek.org. `exampleSite/` suma la búsqueda (`/buscar/` + `index.json`), el
+  portafolio y un ejemplo de `terminal`; antes la lupa del header daba 404 en
+  la demo. Capturas de `images/` regeneradas.
+
 ### Fixed
+- Synapsis: clic en un nodo no abría el post (el puntero se capturaba al
+  apretar y el clic iba al `<svg>`); ahora se captura solo al arrastrar.
+  Arrastrar desde un nodo ya no inicia el "arrastrar enlace" nativo, y el
+  foco por clic no dispara el resaltado (solo el foco de teclado).
 - **Mermaid perdía los `<br/>`** de las etiquetas: el render hook emitía el
   código con `safeHTML`, el navegador lo convertía en elementos reales y
   `textContent` (de donde se re-renderiza) los descartaba. Ahora el código va
@@ -54,7 +77,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/).
   la regla anti-corte de `th`/`td` no llegaba a los descendientes, que el
   selector universal de base alcanza directamente. Ahora cubre también
   `:is(th, td) *`.
+- **`code` dentro de un enlace se veía como `code` suelto** (p. ej. un hash
+  enlazado a VirusTotal): ahora lleva borde en el acento y subrayado punteado,
+  y se rellena al pasar el cursor. El índice (TOC) queda excluido.
 
+### Performance
 - **mermaid autohospedado** (v11.16.0, `static/vm/js/mermaid.min.js`, build
   IIFE → `window.mermaid`): se elimina la última dependencia externa del tema
   (CDN jsdelivr) en los cuatro puntos de carga — `extended_footer.html`,
